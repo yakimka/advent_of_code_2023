@@ -7,7 +7,7 @@ My solutions for https://adventofcode.com/2023/
 ### Setup venv
 
 ```bash
-make setup-venv
+make venv
 ```
 
 ### Create new day from template

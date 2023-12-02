@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import os
+from pathlib import Path
 
 import pytest
 
 from support import iter_lines_as_numbers
 
-INPUT_TXT = os.path.join(os.path.dirname(__file__), "input.txt")
+INPUT_TXT = Path(__file__).parent / "input.txt"
 
 
 def compute(s: str) -> int:
