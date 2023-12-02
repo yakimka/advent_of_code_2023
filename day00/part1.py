@@ -36,8 +36,7 @@ def test_debug(input_s: str, expected: int) -> None:
 
 @pytest.mark.skip("Set answer for refactoring")
 def test_input() -> None:
-    with open(INPUT_TXT) as f:
-        result = compute(f.read())
+    result = compute(read_input())
 
     assert result == 0
 

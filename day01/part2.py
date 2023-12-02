@@ -40,7 +40,8 @@ def _replace_spelled_numbers(text: str, *, direction: int) -> str:
             heapq.heappush(
                 to_replace, (index * direction, index, spelled_number, str(num))
             )
-    while to_replace:
+    # We only need to replace first occurrence, not all of them
+    if to_replace:
         _, index, old_number, new_number = heapq.heappop(to_replace)
         text = text[:index] + text[index:].replace(old_number, new_number, 1)
     return text
@@ -88,8 +89,7 @@ def test_debug(input_s: str, expected: int) -> None:
 
 
 def test_input() -> None:
-    with open(INPUT_TXT) as f:
-        result = compute(f.read())
+    result = compute(read_input())
 
     assert result == 53868
 
