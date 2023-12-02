@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import timeit
+from functools import lru_cache
 from pathlib import Path
 from typing import Iterable
 
@@ -50,6 +51,16 @@ def resolve_path(graph: dict, path: Iterable[str]) -> int | None:
     return current
 
 
+@lru_cache(maxsize=None)
+def resolve_left_path(path: Iterable[str]) -> int | None:
+    return resolve_path(SPELLED_GRAPH, path)
+
+
+@lru_cache(maxsize=None)
+def resolve_right_path(path: Iterable[str]) -> int | None:
+    return resolve_path(SPELLED_GRAPH_REVERSED, path)
+
+
 def compute(s: str) -> int:
     result = 0
     for line in s.splitlines():
@@ -69,15 +80,13 @@ def compute(s: str) -> int:
                     left_number = int(left_char)
                     continue
 
-                new_left_graph_path = [*left_graph_path, left_char]
-                left_resolved = resolve_path(SPELLED_GRAPH, new_left_graph_path)
+                new_left_graph_path = (*left_graph_path, left_char)
+                left_resolved = resolve_left_path(new_left_graph_path)
                 if left_resolved is not None:
-                    left_graph_path.append(left_char)
+                    left_graph_path = new_left_graph_path
                 else:
                     for i in range(1, len(left_graph_path) + 1):
-                        left_resolved = resolve_path(
-                            SPELLED_GRAPH, new_left_graph_path[i:]
-                        )
+                        left_resolved = resolve_left_path(new_left_graph_path[i:])
                         if left_resolved is not None:
                             left_graph_path = new_left_graph_path[i:]
                             break
@@ -95,17 +104,13 @@ def compute(s: str) -> int:
                     right_number = int(right_char)
                     continue
 
-                new_right_graph_path = [*right_graph_path, right_char]
-                right_resolved = resolve_path(
-                    SPELLED_GRAPH_REVERSED, new_right_graph_path
-                )
+                new_right_graph_path = (*right_graph_path, right_char)
+                right_resolved = resolve_right_path(new_right_graph_path)
                 if right_resolved is not None:
-                    right_graph_path.append(right_char)
+                    right_graph_path = new_right_graph_path
                 else:
                     for i in range(1, len(right_graph_path) + 1):
-                        right_resolved = resolve_path(
-                            SPELLED_GRAPH_REVERSED, new_right_graph_path[i:]
-                        )
+                        right_resolved = resolve_right_path(new_right_graph_path[i:])
                         if right_resolved is not None:
                             right_graph_path = new_right_graph_path[i:]
                             break
