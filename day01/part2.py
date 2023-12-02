@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import heapq
 import os
+import sys
+import timeit
 from typing import Iterable
 
 import pytest
@@ -92,12 +94,20 @@ def test_input() -> None:
     assert result == 53868
 
 
-def main() -> int:
+def read_input() -> str:
     with open(INPUT_TXT) as f:
-        print(compute(f.read()))
-
-    return 0
+        return f.read()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    input_data = read_input()
+    print("Answer is:", compute(input_data))
+
+    if "-b" in sys.argv:
+        bench_time = timeit.timeit(
+            "compute(data)",
+            setup="from __main__ import compute",
+            globals={"data": input_data},
+            number=1000,
+        )
+        print("1000 runs took", bench_time, "seconds")

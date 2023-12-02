@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+import timeit
 from pathlib import Path
 from typing import Iterable
 
@@ -55,7 +57,7 @@ def compute(s: str) -> int:
         right = len(line) - 1
         left_number = -1
         right_number = -1
-        left_graph = SPELLED_GRAPH
+        left_graph_path = []
         right_graph_path = []
         while left <= right:
             if left_number >= 0 and right_number >= 0:
@@ -63,44 +65,57 @@ def compute(s: str) -> int:
 
             if left_number < 0:
                 left_char = line[left]
-                if left_char in left_graph:
-                    left_graph = left_graph[left_char]
-                    if isinstance(left_graph, int):
-                        left_number = left_graph
-                        continue
-                else:
-                    if left_char in SPELLED_GRAPH:
-                        left_graph = SPELLED_GRAPH[left_char]
-                    else:
-                        left_graph = SPELLED_GRAPH
-
                 if left_char.isdigit():
                     left_number = int(left_char)
                     continue
-                left += 1
-            if right_number < 0:
-                right_char = line[right]
-                new_right_graph_path = [*right_graph_path, right_char]
-                resolved = resolve_path(SPELLED_GRAPH_REVERSED, new_right_graph_path)
-                if resolved is not None:
-                    right_graph_path.append(right_char)
+
+                new_left_graph_path = [*left_graph_path, left_char]
+                left_resolved = resolve_path(SPELLED_GRAPH, new_left_graph_path)
+                if left_resolved is not None:
+                    left_graph_path.append(left_char)
                 else:
-                    for i in range(len(right_graph_path)):
-                        resolved = resolve_path(SPELLED_GRAPH_REVERSED, new_right_graph_path[i:])
-                        if resolved is not None:
-                            right_graph_path = right_graph_path[i:]
+                    for i in range(1, len(left_graph_path) + 1):
+                        left_resolved = resolve_path(
+                            SPELLED_GRAPH, new_left_graph_path[i:]
+                        )
+                        if left_resolved is not None:
+                            left_graph_path = new_left_graph_path[i:]
                             break
                     else:
-                        right_graph_path = []
-                if isinstance(resolved, int):
-                    right_number = resolved
+                        left_graph_path = []
+                if isinstance(left_resolved, int):
+                    left_number = left_resolved
                     continue
 
+                left += 1
+
+            if right_number < 0:
+                right_char = line[right]
                 if right_char.isdigit():
                     right_number = int(right_char)
                     continue
+
+                new_right_graph_path = [*right_graph_path, right_char]
+                right_resolved = resolve_path(
+                    SPELLED_GRAPH_REVERSED, new_right_graph_path
+                )
+                if right_resolved is not None:
+                    right_graph_path.append(right_char)
+                else:
+                    for i in range(1, len(right_graph_path) + 1):
+                        right_resolved = resolve_path(
+                            SPELLED_GRAPH_REVERSED, new_right_graph_path[i:]
+                        )
+                        if right_resolved is not None:
+                            right_graph_path = new_right_graph_path[i:]
+                            break
+                    else:
+                        right_graph_path = []
+                if isinstance(right_resolved, int):
+                    right_number = right_resolved
+                    continue
+
                 right -= 1
-        print(line, left_number * 10 + right_number)
         result += left_number * 10 + right_number
     return result
 
@@ -120,23 +135,22 @@ EXPECTED = 281
 @pytest.mark.parametrize(
     ("input_s", "expected"),
     (
-        # (INPUT_S, EXPECTED),
-        # ("sdonefour77one", 11),
-        # ("ktnxrj2sixsevenrcnqbksgbgdfxrdqgz", 27),
-
+        (INPUT_S, EXPECTED),
+        ("sdonefour77one", 11),
+        ("ktnxrj2sixsevenrcnqbksgbgdfxrdqgz", 27),
+        ("ktnxrj2sixsevenrcn", 27),
         ("1drjnqoneninennhqt", 19),
         ("twofiveoneseven1rqjvrrxtwonen", 21),
         ("two7fivenrgdqshs", 25),
+        ("7ninetphdpcx", 79),
     ),
 )
 def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
 
-
 def test_input() -> None:
-    with open(INPUT_TXT) as f:
-        result = compute(f.read())
+    result = compute(read_input())
 
     assert result == 53868
 
@@ -149,13 +163,20 @@ def test_find_problem(line) -> None:
     assert compute_valid(line) == compute(line)
 
 
-
-def main() -> int:
+def read_input() -> str:
     with open(INPUT_TXT) as f:
-        print(compute(f.read()))
-
-    return 0
+        return f.read()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    input_data = read_input()
+    print("Answer is:", compute(input_data))
+
+    if "-b" in sys.argv:
+        bench_time = timeit.timeit(
+            "compute(data)",
+            setup="from __main__ import compute",
+            globals={"data": input_data},
+            number=1000,
+        )
+        print("1000 runs took", bench_time, "seconds")
