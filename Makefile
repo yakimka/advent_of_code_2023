@@ -1,6 +1,6 @@
 SHELL:=/usr/bin/env bash
 
-setup-venv:
+venv:
 	@if [ -d ".venv" ]; then \
 		echo "Error: .venv directory already exists"; \
 		exit 1; \
@@ -31,6 +31,6 @@ test:
 		day="day$$num"; \
 		if [ -d "$$day" ]; then \
 			echo "Testing in $$day"; \
-			(cd $$day; pytest part*.py); \
+			(cd $$day; pytest part*.py -v); \
 		fi \
 	done

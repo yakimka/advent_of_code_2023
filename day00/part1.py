@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-import os
+import sys
+import timeit
+from pathlib import Path
 
 import pytest
 
 from support import iter_lines_as_numbers
 
-INPUT_TXT = os.path.join(os.path.dirname(__file__), "input.txt")
+INPUT_TXT = Path(__file__).parent / "input.txt"
 
 
 def compute(s: str) -> int:
@@ -40,12 +42,21 @@ def test_input() -> None:
     assert result == 0
 
 
-def main() -> int:
+def read_input() -> str:
     with open(INPUT_TXT) as f:
-        print(compute(f.read()))
-
-    return 0
+        return f.read()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    input_data = read_input()
+    print("Answer is:", compute(input_data))
+
+    if "-b" in sys.argv:
+        number_of_runs = 1000
+        bench_time = timeit.timeit(
+            "compute(data)",
+            setup="from __main__ import compute",
+            globals={"data": input_data},
+            number=number_of_runs,
+        )
+        print(f"{number_of_runs} runs took {bench_time} seconds")
