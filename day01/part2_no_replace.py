@@ -23,41 +23,46 @@ SPELLED_NUMBERS = [
 ]
 
 
-def _make_spelled_graph_from_words(words: list[str]):
+def _make_path_graph_from_words(words: list[str]):
     graph = {}
     for word in words:
         word_len = len(word)
         current = graph
         for i, char in enumerate(word):
-            default = {} if i < word_len - 1 else words.index(word) + 1
+            default = {} if i < word_len - 1 else True
             current = current.setdefault(char, default)
     return graph
 
 
-SPELLED_GRAPH = _make_spelled_graph_from_words(SPELLED_NUMBERS)
+SPELLED_GRAPH = _make_path_graph_from_words(SPELLED_NUMBERS)
 SPELLED_NUMBERS_REVERSED = [word[::-1] for word in SPELLED_NUMBERS]
-SPELLED_GRAPH_REVERSED = _make_spelled_graph_from_words(SPELLED_NUMBERS_REVERSED)
+SPELLED_GRAPH_REVERSED = _make_path_graph_from_words(SPELLED_NUMBERS_REVERSED)
 
 
-def resolve_path(graph: dict, path: Iterable[str]) -> int | None:
+def resolve_path(graph: dict, path: Iterable[str]) -> int:
+    """
+    Return -1 if path is not found
+        1 if path is resolved completely
+        0 if path is resolved partially
+    """
     current = graph
     for char in path:
-        if isinstance(current, int):
-            return None
+        if current is True:
+            return -1
         if char not in current:
-            return None
+            return -1
         current = current[char]
 
-    return current
+    return 1 if current is True else 0
 
 
 @lru_cache(maxsize=None)
-def resolve_left_path(path: Iterable[str]) -> int | None:
+def resolve_left_path(path: Iterable[str]) -> int:
     return resolve_path(SPELLED_GRAPH, path)
 
 
 @lru_cache(maxsize=None)
-def resolve_right_path(path: Iterable[str]) -> int | None:
+def resolve_right_path(path: Iterable[str]) -> int:
     return resolve_path(SPELLED_GRAPH_REVERSED, path)
 
 
@@ -74,6 +79,9 @@ def compute(s: str) -> int:
             if left_number >= 0 and right_number >= 0:
                 break
 
+            # Part that checking left and right numbers
+            #   can be extracted to separate function
+            #   but i don't want to do it
             if left_number < 0:
                 left_char = line[left]
                 if left_char.isdigit():
@@ -82,18 +90,18 @@ def compute(s: str) -> int:
 
                 new_left_graph_path = (*left_graph_path, left_char)
                 left_resolved = resolve_left_path(new_left_graph_path)
-                if left_resolved is not None:
+                if left_resolved != -1:
                     left_graph_path = new_left_graph_path
                 else:
                     for i in range(1, len(left_graph_path) + 1):
                         left_resolved = resolve_left_path(new_left_graph_path[i:])
-                        if left_resolved is not None:
+                        if left_resolved != -1:
                             left_graph_path = new_left_graph_path[i:]
                             break
                     else:
                         left_graph_path = []
-                if isinstance(left_resolved, int):
-                    left_number = left_resolved
+                if left_resolved == 1:
+                    left_number = SPELLED_NUMBERS.index("".join(left_graph_path)) + 1
                     continue
 
                 left += 1
@@ -106,18 +114,20 @@ def compute(s: str) -> int:
 
                 new_right_graph_path = (*right_graph_path, right_char)
                 right_resolved = resolve_right_path(new_right_graph_path)
-                if right_resolved is not None:
+                if right_resolved != -1:
                     right_graph_path = new_right_graph_path
                 else:
                     for i in range(1, len(right_graph_path) + 1):
                         right_resolved = resolve_right_path(new_right_graph_path[i:])
-                        if right_resolved is not None:
+                        if right_resolved != -1:
                             right_graph_path = new_right_graph_path[i:]
                             break
                     else:
                         right_graph_path = []
-                if isinstance(right_resolved, int):
-                    right_number = right_resolved
+                if right_resolved == 1:
+                    right_number = (
+                        SPELLED_NUMBERS_REVERSED.index("".join(right_graph_path)) + 1
+                    )
                     continue
 
                 right -= 1
@@ -158,14 +168,6 @@ def test_input() -> None:
     result = compute(read_input())
 
     assert result == 53868
-
-
-@pytest.mark.skip()
-@pytest.mark.parametrize("line", INPUT_TXT.read_text().splitlines())
-def test_find_problem(line) -> None:
-    from .part2 import compute as compute_valid
-
-    assert compute_valid(line) == compute(line)
 
 
 def read_input() -> str:
