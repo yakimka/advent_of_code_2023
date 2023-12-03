@@ -28,7 +28,7 @@ def compute(s: str) -> int:
                         (line_index, digit_start),
                     )
                 digit_start = -1
-            if char != ".":
+            if char == "*":
                 symbols_map[(line_index, char_index)] = char
 
     numbers_sum = 0
@@ -48,7 +48,9 @@ def compute(s: str) -> int:
         for coord_id, coord in enumerate(adjacent_coordinates):
             if coord in numbers_map:
                 adjacent_numbers.add(numbers_map[coord])
-        numbers_sum += sum(number for number, *_ in adjacent_numbers)
+        if len(adjacent_numbers) == 2:
+            first, second = adjacent_numbers
+            numbers_sum += first[0] * second[0]
 
     return numbers_sum
 
@@ -65,7 +67,7 @@ INPUT_S = """\
 ...$.*....
 .664.598..
 """
-EXPECTED = 4361
+EXPECTED = 467835
 
 INPUT_S2 = """\
 12.......*..
@@ -81,7 +83,7 @@ INPUT_S2 = """\
 .*.........*
 1.1..503+.56
 """
-EXPECTED2 = 925
+EXPECTED2 = 6756
 
 
 @pytest.mark.parametrize(
@@ -98,7 +100,7 @@ def test_debug(input_s: str, expected: int) -> None:
 def test_input() -> None:
     result = compute(read_input())
 
-    assert result == 531932
+    assert result == 73646890
 
 
 def read_input() -> str:
