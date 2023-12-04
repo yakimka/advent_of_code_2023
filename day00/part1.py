@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from support import iter_lines_as_numbers
+import support as sup
 
 INPUT_TXT = Path(__file__).parent / "input.txt"
 
 
 def compute(s: str) -> int:
-    for num in iter_lines_as_numbers(s):
+    for num in sup.iter_lines_as_numbers(s):
         pass
 
     for line in s.splitlines():
