@@ -8,7 +8,7 @@ venv:
 	@echo "Setting up virtual environment..."
 	@python3 -m venv .venv
 	@echo "Installing dependencies..."
-	@.venv/bin/pip install pre-commit==3.5.0 ipython pytest
+	@.venv/bin/pip install -e support pre-commit==3.5.0 ipython pytest
 	@echo "Done."
 
 new-day:

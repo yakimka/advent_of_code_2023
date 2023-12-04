@@ -23,4 +23,10 @@ make new-day day=08
 make lint
 # Run tests in all days
 make test
+# Download input for a day
+cd day08
+aoc-download-input
+# Submit solution
+cd day08
+pytest part1.py && python part1.py | aoc-submit --part=1
 ```
