@@ -2,47 +2,55 @@ from __future__ import annotations
 
 import sys
 import timeit
-from itertools import chain
+from itertools import chain, islice
 from pathlib import Path
 
 import pytest
-
 import support as sup
 
 INPUT_TXT = Path(__file__).parent / "input.txt"
 
+# I have 3.11 this year
+# https://docs.python.org/3/library/itertools.html#itertools.batched
+def batched(iterable, n):
+    # batched('ABCDEFG', 3) --> ABC DEF G
+    if n < 1:
+        raise ValueError('n must be at least one')
+    it = iter(iterable)
+    while batch := tuple(islice(it, n)):
+        yield batch
+
 
 def compute(s: str) -> int:
-    source_indexes = []
+    current_source_ranges = []
     ranges = []
     for line in chain(s.splitlines(), [""]):
         if not line.strip():
             if not ranges:
                 continue
-            for i, source_index in enumerate(source_indexes):
+            for i, curr_source_range in enumerate(current_source_ranges):
                 for source_range, destination_range in ranges:
-                    if source_index in source_range:
-                        mapped_index = destination_range.start + (
-                            source_index - source_range.start
+                    if intersection := curr_source_range.intersection(source_range):
+                        current_source_ranges[i] = sup.Range(
+                            destination_range.start + (intersection.start - source_range.start),
+                            destination_range.end + (intersection.end - source_range.end),
                         )
-                        source_indexes[i] = mapped_index
+                        if remainder := curr_source_range.remainder(source_range):
+                            current_source_ranges.extend(remainder)
                         break
             ranges = []
 
         elif ":" in line:
             name, values = line.split(":")
             if name == "seeds":
-                source_indexes = [int(x) for x in values.strip().split()]
+                seeds_input = [int(x) for x in values.strip().split()]
+                for start, range_len in batched(seeds_input, 2):
+                    current_source_ranges.append(sup.Range(start, start + range_len))
         else:
             destination, source, range_len = (int(i) for i in line.split())
-            ranges.append(
-                (
-                    sup.Range(source, source + range_len),
-                    sup.Range(destination, destination + range_len),
-                )
-            )
+            ranges.append((sup.Range(source, source + range_len), sup.Range(destination, destination + range_len)))
 
-    return min(source_indexes)
+    return min(s.start for s in current_source_ranges)
 
 
 INPUT_S = """\
@@ -80,7 +88,7 @@ humidity-to-location map:
 60 56 37
 56 93 4
 """
-EXPECTED = 35
+EXPECTED = 46
 
 
 @pytest.mark.parametrize("input_s,expected", [(INPUT_S, EXPECTED)])
@@ -91,7 +99,7 @@ def test_debug(input_s: str, expected: int) -> None:
 def test_input() -> None:
     result = compute(read_input())
 
-    assert result == 313045984
+    assert result == 20283860
 
 
 def read_input() -> str:

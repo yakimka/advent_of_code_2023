@@ -144,12 +144,39 @@ class Range:
     def __init__(self, start: int, end: int) -> None:
         self.start = start
         self.end = end
+        if self.start >= self.end:
+            raise ValueError(f"{self.start=} must be < {self.end=}")
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.start}, {self.end})"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Range):
+            return NotImplemented
+        return self.start == other.start and self.end == other.end
 
     def __contains__(self, n: int) -> bool:
         return self.start <= n < self.end
 
     def __len__(self) -> int:
         return self.end - self.start
+
+    def has_intersection(self, other: Range) -> bool:
+        return self.start < other.end and other.start < self.end
+
+    def intersection(self, other: Range) -> Range | None:
+        if not self.has_intersection(other):
+            return None
+        return Range(max(self.start, other.start), min(self.end, other.end))
+
+    def remainder(self, other: Range) -> list[Range]:
+        intersection = self.intersection(other)
+        if intersection is None:
+            return []
+
+        result = []
+        if self.start < intersection.start:
+            result.append(Range(self.start, intersection.start))
+        if intersection.end < self.end:
+            result.append(Range(intersection.end, self.end))
+        return result
