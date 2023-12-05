@@ -128,4 +128,4 @@ if __name__ == "__main__":
         )
         print(f"{number_of_runs} runs took {bench_time} seconds")
         one_run = sup.humanized_seconds(bench_time / number_of_runs)
-        print(f"Average time: {one_run} seconds")
+        print(f"Average time: {one_run}")
