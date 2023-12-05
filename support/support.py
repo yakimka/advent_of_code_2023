@@ -8,7 +8,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Generator
+from typing import Generator, Iterable
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -193,3 +193,46 @@ class Range:
         if intersection.end < self.end:
             result.append(Range(intersection.end, self.end))
         return result
+
+
+def neighbors_cross(
+    x: int, y: int, *, max_bounds: tuple[int, int] | None = None
+) -> Generator[tuple[int, int], None, None]:
+    neighbors = (
+        (x, y - 1),
+        (x - 1, y),
+        (x + 1, y),
+        (x, y + 1),
+    )
+    yield from _filter_neighbors(neighbors, max_bounds=max_bounds)
+
+
+def _filter_neighbors(
+    neighbors: Iterable[tuple[int, int]], *, max_bounds: tuple[int, int] | None
+) -> Generator[tuple[int, int], None, None]:
+    if max_bounds is None:
+        max_bounds = (float("inf"), float("inf"))
+    yield from (
+        (x, y)
+        for x, y in neighbors
+        if 0 <= x <= max_bounds[0] and 0 <= y <= max_bounds[1]
+    )
+
+
+def neighbors_diag(
+    x: int, y: int, *, max_bounds: tuple[int, int] | None = None
+) -> Generator[tuple[int, int], None, None]:
+    neighbors = (
+        (x - 1, y - 1),
+        (x + 1, y - 1),
+        (x - 1, y + 1),
+        (x + 1, y + 1),
+    )
+    yield from _filter_neighbors(neighbors, max_bounds=max_bounds)
+
+
+def neighbors_cross_diag(
+    x: int, y: int, *, max_bounds: tuple[int, int] | None = None
+) -> Generator[tuple[int, int], None, None]:
+    yield from neighbors_cross(x, y, max_bounds=max_bounds)
+    yield from neighbors_diag(x, y, max_bounds=max_bounds)
