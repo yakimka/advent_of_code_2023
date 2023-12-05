@@ -136,3 +136,20 @@ def submit_25_pt2() -> int:
 def iter_lines_as_numbers(s: str) -> Generator[int, None, None]:
     for line in s.strip().splitlines():
         yield int(line)
+
+
+class Range:
+    __slots__ = ("start", "end")
+
+    def __init__(self, start: int, end: int) -> None:
+        self.start = start
+        self.end = end
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.start}, {self.end})"
+
+    def __contains__(self, n: int) -> bool:
+        return self.start <= n < self.end
+
+    def __len__(self) -> int:
+        return self.end - self.start
