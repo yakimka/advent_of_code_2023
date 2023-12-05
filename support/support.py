@@ -132,6 +132,19 @@ def submit_25_pt2() -> int:
         return 1
 
 
+def humanized_seconds(seconds: float) -> str:
+    """Convert seconds to human-readable format."""
+
+    if seconds >= 1:
+        return f"{seconds:.2f}s"
+    elif seconds >= 0.001:
+        return f"{seconds * 1000:.0f}ms"
+    elif seconds >= 0.000_001:
+        return f"{seconds * 1_000_000:.0f}μs"
+    else:
+        return f"{seconds * 1_000_000_000:.0f}ns"
+
+
 # ========================== helpers ==========================
 def iter_lines_as_numbers(s: str) -> Generator[int, None, None]:
     for line in s.strip().splitlines():

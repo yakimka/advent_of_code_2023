@@ -6,16 +6,18 @@ from itertools import chain, islice
 from pathlib import Path
 
 import pytest
+
 import support as sup
 
 INPUT_TXT = Path(__file__).parent / "input.txt"
+
 
 # I have 3.11 this year
 # https://docs.python.org/3/library/itertools.html#itertools.batched
 def batched(iterable, n):
     # batched('ABCDEFG', 3) --> ABC DEF G
     if n < 1:
-        raise ValueError('n must be at least one')
+        raise ValueError("n must be at least one")
     it = iter(iterable)
     while batch := tuple(islice(it, n)):
         yield batch
@@ -29,11 +31,11 @@ def compute(s: str) -> int:
             if not ranges:
                 continue
             for i, curr_source_range in enumerate(current_source_ranges):
-                for source_range, destination_range in ranges:
-                    if intersection := curr_source_range.intersection(source_range):
+                for source_range, dest_range in ranges:
+                    if intersect := curr_source_range.intersection(source_range):
                         current_source_ranges[i] = sup.Range(
-                            destination_range.start + (intersection.start - source_range.start),
-                            destination_range.end + (intersection.end - source_range.end),
+                            dest_range.start + (intersect.start - source_range.start),
+                            dest_range.end + (intersect.end - source_range.end),
                         )
                         if remainder := curr_source_range.remainder(source_range):
                             current_source_ranges.extend(remainder)
@@ -48,7 +50,12 @@ def compute(s: str) -> int:
                     current_source_ranges.append(sup.Range(start, start + range_len))
         else:
             destination, source, range_len = (int(i) for i in line.split())
-            ranges.append((sup.Range(source, source + range_len), sup.Range(destination, destination + range_len)))
+            ranges.append(
+                (
+                    sup.Range(source, source + range_len),
+                    sup.Range(destination, destination + range_len),
+                )
+            )
 
     return min(s.start for s in current_source_ranges)
 
@@ -120,3 +127,5 @@ if __name__ == "__main__":
             number=number_of_runs,
         )
         print(f"{number_of_runs} runs took {bench_time} seconds")
+        one_run = sup.humanized_seconds(bench_time / number_of_runs)
+        print(f"Average time: {one_run} seconds")
