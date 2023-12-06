@@ -14,6 +14,8 @@ make venv
 
 ```bash
 make new-day day=08
+# or just
+make new-day  # for today date
 ```
 
 ### Other commands

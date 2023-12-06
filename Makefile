@@ -12,16 +12,13 @@ venv:
 	@echo "Done."
 
 new-day:
-	@if [ -z "$(day)" ]; then \
-		echo "Error: day is required"; \
+	@day=$(if $(day),$(day),$(shell date +%d)); \
+	if [ -d "day$$day" ]; then \
+		echo "Error: day$$day directory already exists"; \
 		exit 1; \
-	fi
-	@if [ -d "day$(day)" ]; then \
-		echo "Error: day$(day) directory already exists"; \
-		exit 1; \
-	fi
-	@echo "Creating day$(day) directory..."
-	@cp -r day00 day$(day)
+	fi; \
+	echo "Creating day$$day directory..."; \
+	cp -r day00 day$$day
 
 lint:
 	@.venv/bin/pre-commit run --all-files
