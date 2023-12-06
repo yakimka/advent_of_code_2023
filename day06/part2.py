@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import bisect
 import sys
 import timeit
 from pathlib import Path
@@ -14,28 +13,36 @@ INPUT_TXT = Path(__file__).parent / "input.txt"
 
 def compute(s: str) -> int:
     lines = s.splitlines()
-    time_data = _line_to_ints(lines[0])
-    distance_data = _line_to_ints(lines[1])
+    time = _line_to_int(lines[0])
+    distance = _line_to_int(lines[1])
 
-    result = 1
-    for time, distance in zip(time_data, distance_data):
-        range_len = time + 1
-        range_middle = range_len // 2
-        timeline = list(range(range_middle))
-        index_start = bisect.bisect_right(timeline, distance, key=_key(time))
-        num_variants = 2 * (range_middle - index_start) + range_len % 2
-        result *= num_variants
+    range_len = time + 1
+    range_middle = range_len // 2
 
-    return result
+    index_start = bisect_right_range(0, range_middle, distance, key=_key(time))
+    num_variants = 2 * (range_middle - index_start) + range_len % 2
+    return num_variants
 
 
 def _key(time: int):
     return lambda x: (time - x) * x
 
 
-def _line_to_ints(line: str) -> list[int]:
+def bisect_right_range(i_start, i_end, x, *, key):
+    if i_start < 0:
+        raise ValueError("i_start must be non-negative")
+    while i_start < i_end:
+        mid = (i_start + i_end) // 2
+        if x < key(mid):
+            i_end = mid
+        else:
+            i_start = mid + 1
+    return i_start
+
+
+def _line_to_int(line: str) -> int:
     _, nums = line.split(":")
-    return [int(nums.strip().replace(" ", ""))]
+    return int(nums.strip().replace(" ", ""))
 
 
 INPUT_S = """\
