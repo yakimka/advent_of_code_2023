@@ -20,7 +20,9 @@ def compute(s: str) -> int:
     lines = s.splitlines()
     mapping = {}
     for line in lines[2:]:
-        line = line.replace(" = ", " ").replace("(", "").replace(")", "").replace(",", " ")
+        line = (
+            line.replace(" = ", " ").replace("(", "").replace(")", "").replace(",", " ")
+        )
         node_name, *values = line.split()
         mapping[node_name] = values
 
@@ -61,10 +63,13 @@ ZZZ = (ZZZ, ZZZ)
 EXPECTED2 = 6
 
 
-@pytest.mark.parametrize("input_s,expected", [
-    (INPUT_S1, EXPECTED1),
-    (INPUT_S2, EXPECTED2),
-])
+@pytest.mark.parametrize(
+    "input_s,expected",
+    [
+        (INPUT_S1, EXPECTED1),
+        (INPUT_S2, EXPECTED2),
+    ],
+)
 def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
