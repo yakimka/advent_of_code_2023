@@ -25,7 +25,7 @@ def predict(data: list[int]) -> int:
 
     new_value = 0
     for layer in reversed(predict_layers):
-        new_value += layer[-1]
+        new_value = layer[0] - new_value
 
     return new_value
 
@@ -35,7 +35,7 @@ INPUT_S = """\
 1 3 6 10 15 21
 10 13 16 21 30 45
 """
-EXPECTED = 114
+EXPECTED = 2
 
 
 @pytest.mark.parametrize(
@@ -51,7 +51,7 @@ def test_debug(input_s: str, expected: int) -> None:
 def test_input() -> None:
     result = compute(read_input())
 
-    assert result == 1584748274
+    assert result == 1026
 
 
 def read_input() -> str:
