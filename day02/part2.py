@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+import support as sup
+
 INPUT_TXT = Path(__file__).parent / "input.txt"
 
 
@@ -64,7 +66,7 @@ def read_input() -> str:
 
 if __name__ == "__main__":
     input_data = read_input()
-    print("Answer is:", compute(input_data))
+    print("Answer is:     ", compute(input_data))
 
     if "-b" in sys.argv:
         number_of_runs = 1000
@@ -74,4 +76,6 @@ if __name__ == "__main__":
             globals={"data": input_data},
             number=number_of_runs,
         )
-        print(f"{number_of_runs} runs took {bench_time} seconds")
+        print(f"{number_of_runs} runs took: {bench_time}s")
+        one_run = sup.humanized_seconds(bench_time / number_of_runs)
+        print(f"Average time:   {one_run}")

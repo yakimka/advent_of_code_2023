@@ -8,6 +8,8 @@ from typing import Iterable
 
 import pytest
 
+import support as sup
+
 INPUT_TXT = os.path.join(os.path.dirname(__file__), "input.txt")
 
 SPELLED_NUMBERS = [
@@ -101,13 +103,16 @@ def read_input() -> str:
 
 if __name__ == "__main__":
     input_data = read_input()
-    print("Answer is:", compute(input_data))
+    print("Answer is:     ", compute(input_data))
 
     if "-b" in sys.argv:
+        number_of_runs = 1000
         bench_time = timeit.timeit(
             "compute(data)",
             setup="from __main__ import compute",
             globals={"data": input_data},
-            number=1000,
+            number=number_of_runs,
         )
-        print("1000 runs took", bench_time, "seconds")
+        print(f"{number_of_runs} runs took: {bench_time}s")
+        one_run = sup.humanized_seconds(bench_time / number_of_runs)
+        print(f"Average time:   {one_run}")

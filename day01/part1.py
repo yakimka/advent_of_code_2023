@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import os
+import sys
+import timeit
 
 import pytest
+
+import support as sup
 
 INPUT_TXT = os.path.join(os.path.dirname(__file__), "input.txt")
 
@@ -58,12 +62,23 @@ def test_input() -> None:
     assert result == 54953
 
 
-def main() -> int:
+def read_input() -> str:
     with open(INPUT_TXT) as f:
-        print(compute(f.read()))
-
-    return 0
+        return f.read()
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    input_data = read_input()
+    print("Answer is:     ", compute(input_data))
+
+    if "-b" in sys.argv:
+        number_of_runs = 1000
+        bench_time = timeit.timeit(
+            "compute(data)",
+            setup="from __main__ import compute",
+            globals={"data": input_data},
+            number=number_of_runs,
+        )
+        print(f"{number_of_runs} runs took: {bench_time}s")
+        one_run = sup.humanized_seconds(bench_time / number_of_runs)
+        print(f"Average time:   {one_run}")
