@@ -82,10 +82,10 @@ def compute(s: str) -> int:
         (start, "right", 4),
     ])
     path_storage = {
-        1: 0,
-        2: 0,
-        3: 0,
-        4: 0,
+        1: [],
+        2: [],
+        3: [],
+        4: [],
     }
     id_to_last_coords = {}
     while queue:
@@ -97,53 +97,80 @@ def compute(s: str) -> int:
             curr_path = path_storage[id]
             visited_path = path_storage[coords_to_id[new_coords]]
 
-            return max(curr_path, visited_path)
+            return max(len(curr_path), len(visited_path))
 
         if new_coords is not None and new_direction is not None:
             queue.append((new_coords, new_direction, id))
             nx, ny = new_coords
-            path_storage[id] += 1
+            path_storage[id].append((nx, ny))
             id_to_last_coords[id] = ((x, y), (nx, ny))
 
 
 INPUT_S1 = """\
-.....
-.S-7.
-.|.|.
-.L-J.
-.....
+...........
+.S-------7.
+.|F-----7|.
+.||.....||.
+.||.....||.
+.|L-7.F-J|.
+.|..|.|..|.
+.L--J.L--J.
+...........
 """
 EXPECTED1 = 4
+
 INPUT_S2 = """\
--L|F7
-7S-7|
-L|7||
--L-J|
-L|-JF
+..........
+.S------7.
+.|F----7|.
+.||....||.
+.||....||.
+.|L-7F-J|.
+.|..||..|.
+.L--JL--J.
+..........
 """
 EXPECTED2 = 4
 INPUT_S3 = """\
-..F7.
-.FJ|.
-SJ.L7
-|F--J
-LJ...
+.F----7F7F7F7F-7....
+.|F--7||||||||FJ....
+.||.FJ||||||||L7....
+FJL7L7LJLJ||LJ.L-7..
+L--J.L7...LJS7F-7L7.
+....F-J..F7FJ|L7L7L7
+....L7.F7||L7|.L7L7|
+.....|FJLJ|FJ|F7|.LJ
+....FJL-7.||.||||...
+....L---J.LJ.LJLJ...
 """
 EXPECTED3 = 8
 
+INPUT_S4 = """\
+FF7FSF7F7F7F7F7F---7
+L|LJ||||||||||||F--J
+FL-7LJLJ||||||LJL-77
+F--JF--7||LJLJ7F7FJ-
+L---JF-JLJ.||-FJLJJ7
+|F|F-JF---7F7-L7L|7|
+|FFJF7L7F-JF7|JL---7
+7-L-JL7||F7|L7F-7F7|
+L.L7LFJ|||||FJL7||LJ
+L7JLJL-JLJLJL--JLJ.L
+"""
+EXPECTED4 = 10
 
-@pytest.mark.parametrize(
-    "input_s,expected",
-    [
-        (INPUT_S1, EXPECTED1),
-        (INPUT_S2, EXPECTED2),
-        (INPUT_S3, EXPECTED3),
-    ],
-)
+
+@pytest.mark.parametrize("input_s,expected", [
+    (INPUT_S1, EXPECTED1),
+    (INPUT_S2, EXPECTED2),
+    (INPUT_S3, EXPECTED3),
+    (INPUT_S4, EXPECTED4),
+])
 def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
 
+@pytest.mark.skip("Not implemented")
 def test_input() -> None:
     result = compute(read_input())
 
