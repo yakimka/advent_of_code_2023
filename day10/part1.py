@@ -43,23 +43,28 @@ def try_path(
         "right": (start_x, start_y + 1),
     }
     x, y = directions[d]
-    if x < 0 or y < 0:
-        return None, None, None
-    if x >= len(field) or y >= len(field[0]):
+    new_value = get_value(x, y, field)
+    if new_value is None:
         return None, None, None
 
-    value = field[x][y]
-    if value in PIPES:
+    if new_value in PIPES:
         new_directions = list(PIPES[field[x][y]])
         # remove the direction we came from
         try:
             new_directions.remove(OPPOSITE_DIRECTIONS[d])
         except ValueError:
             # Can't go to pipe with this shape
-            return (x, y), None, value
-        return (x, y), new_directions[0], value
+            return (x, y), None, new_value
+        return (x, y), new_directions[0], new_value
 
-    return (x, y), None, value
+    return (x, y), None, new_value
+
+
+def get_value(x, y, field) -> Value | None:
+    if (0 > x > len(field)) or (0 > y > len(field[0])):
+        return None
+
+    return field[x][y]
 
 
 def compute(s: str) -> int:
@@ -71,19 +76,27 @@ def compute(s: str) -> int:
             start = (i, s_index)
 
     queue = deque([
-        (start, 0, "up"),
-        (start, 0, "down"),
-        (start, 0, "left"),
-        (start, 0, "right"),
+        (start, "up"),
+        (start, "down"),
+        (start, "left"),
+        (start, "right"),
     ])
     while queue:
-        (x, y), path_len, direction = queue.popleft()
-        new_coords, new_direction, value = try_path(x, y, direction, field)
-        if value == "S":
-            full_path_len = path_len + 1
+        (x, y), direction = queue.popleft()
+        path_len = 0
+        prev_value = get_value(x, y, field)
+        if isinstance(prev_value, int):
+            path_len = prev_value
+
+        new_coords, new_direction, new_value = try_path(x, y, direction, field)
+        if isinstance(new_value, int):
+            full_path_len = path_len + new_value + 1
             return full_path_len // 2
+
         if new_coords is not None and new_direction is not None:
-            queue.append((new_coords, path_len + 1, new_direction))
+            queue.append((new_coords, new_direction))
+            x, y = new_coords
+            field[x][y] = path_len + 1
 
 
 INPUT_S1 = """\
