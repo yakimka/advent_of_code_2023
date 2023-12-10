@@ -28,7 +28,14 @@ OPPOSITE_DIRECTIONS = {
 }
 
 
-def goto(start_x, start_y, d: str, field) -> tuple[tuple[int, int], str] | None:
+NewCoords = tuple[int, int]
+Value = str | int
+NewDirection = str
+
+
+def try_path(
+    start_x, start_y, d: str, field
+) -> tuple[NewCoords | None, NewDirection | None, Value | None]:
     directions = {
         "up": (start_x - 1, start_y),
         "down": (start_x + 1, start_y),
@@ -37,24 +44,22 @@ def goto(start_x, start_y, d: str, field) -> tuple[tuple[int, int], str] | None:
     }
     x, y = directions[d]
     if x < 0 or y < 0:
-        return None
+        return None, None, None
     if x >= len(field) or y >= len(field[0]):
-        return None
-    if field[x][y] == ".":
-        return None
+        return None, None, None
 
-    if field[x][y] == "S":
-        return (x, y), "S"
+    value = field[x][y]
+    if value in PIPES:
+        new_directions = list(PIPES[field[x][y]])
+        # remove the direction we came from
+        try:
+            new_directions.remove(OPPOSITE_DIRECTIONS[d])
+        except ValueError:
+            # Can't go to pipe with this shape
+            return (x, y), None, value
+        return (x, y), new_directions[0], value
 
-    # remove the direction we came from
-    new_directions = list(PIPES[field[x][y]])
-    try:
-        new_directions.remove(OPPOSITE_DIRECTIONS[d])
-    except ValueError:
-        # Can't go to pipe with this shape
-        return None
-
-    return (x, y), new_directions[0]
+    return (x, y), None, value
 
 
 def compute(s: str) -> int:
@@ -73,11 +78,11 @@ def compute(s: str) -> int:
     ])
     while queue:
         (x, y), path_len, direction = queue.popleft()
-        if val := goto(x, y, direction, field):
-            new_coords, new_direction = val
-            if new_direction == "S":
-                full_path_len = path_len + 1
-                return full_path_len // 2
+        new_coords, new_direction, value = try_path(x, y, direction, field)
+        if value == "S":
+            full_path_len = path_len + 1
+            return full_path_len // 2
+        if new_coords is not None and new_direction is not None:
             queue.append((new_coords, path_len + 1, new_direction))
 
 
@@ -107,11 +112,14 @@ LJ...
 EXPECTED3 = 8
 
 
-@pytest.mark.parametrize("input_s,expected", [
-    (INPUT_S1, EXPECTED1),
-    (INPUT_S2, EXPECTED2),
-    (INPUT_S3, EXPECTED3),
-])
+@pytest.mark.parametrize(
+    "input_s,expected",
+    [
+        (INPUT_S1, EXPECTED1),
+        (INPUT_S2, EXPECTED2),
+        (INPUT_S3, EXPECTED3),
+    ],
+)
 def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
