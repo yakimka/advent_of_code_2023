@@ -76,18 +76,34 @@ def compute(s: str) -> int:
             start = (i, s_index)
 
     queue = deque([
-        (start, "up", 1),
-        (start, "down", 2),
-        (start, "left", 3),
-        (start, "right", 4),
+        (start, "up", "up"),
+        (start, "down", "down"),
+        (start, "left", "left"),
+        (start, "right", "right"),
     ])
     path_storage = {
-        1: [],
-        2: [],
-        3: [],
-        4: [],
+        "up": [],
+        "down": [],
+        "left": [],
+        "right": [],
     }
     id_to_last_coords = {}
+    loop = []
+    start_pipe = None
+    start_pipe_mappping = {
+        ("up", "down"): "|",
+        ("down", "up"): "|",
+        ("left", "right"): "-",
+        ("right", "left"): "-",
+        ("up", "right"): "L",
+        ("right", "up"): "L",
+        ("up", "left"): "J",
+        ("left", "up"): "J",
+        ("down", "left"): "7",
+        ("left", "down"): "7",
+        ("down", "right"): "F",
+        ("right", "down"): "F",
+    }
     while queue:
         (x, y), direction, id = queue.popleft()
 
@@ -96,14 +112,57 @@ def compute(s: str) -> int:
         if new_coords in coords_to_id:
             curr_path = path_storage[id]
             visited_path = path_storage[coords_to_id[new_coords]]
-
-            return max(len(curr_path), len(visited_path))
+            loop.extend(curr_path)
+            loop.extend(reversed(visited_path))
+            start_pipe = start_pipe_mappping[(id, coords_to_id[new_coords])]
+            break
 
         if new_coords is not None and new_direction is not None:
             queue.append((new_coords, new_direction, id))
             nx, ny = new_coords
             path_storage[id].append((nx, ny))
             id_to_last_coords[id] = ((x, y), (nx, ny))
+
+    new_field = [
+        [field[x][y] if (x, y) in loop else "." for y in range(len(field[0]))]
+        for x in range(len(field))
+    ]
+    new_field[start[0]][start[1]] = start_pipe
+
+    result = 0
+    vertical_pipes = "F7LJ|"
+    for x in range(len(new_field)):
+        count_in = 0
+        cross = False
+
+        last_value = None
+        for y in range(len(new_field[0])):
+            value = new_field[x][y]
+
+            if value == "." and cross:
+                count_in += 1
+            elif value in vertical_pipes and (last_value, value) not in [
+                ("F", "J"),
+                ("L", "7"),
+            ]:
+                cross = not cross
+
+            if value in vertical_pipes:
+                last_value = value
+        result += count_in
+
+    return result
+
+
+def count_empty(x, y, field, filter_gen) -> int:
+    value = field[x][y]
+    if value != ".":
+        return 0
+
+    field[x][y] = "X"
+
+    coords = ((x, y) for x, y in sup.neighbors_cross(x, y, filter_gen=filter_gen))
+    return 1 + sum(count_empty(x, y, field, filter_gen) for x, y in coords)
 
 
 INPUT_S1 = """\
@@ -160,21 +219,23 @@ L7JLJL-JLJLJL--JLJ.L
 EXPECTED4 = 10
 
 
-@pytest.mark.parametrize("input_s,expected", [
-    (INPUT_S1, EXPECTED1),
-    (INPUT_S2, EXPECTED2),
-    (INPUT_S3, EXPECTED3),
-    (INPUT_S4, EXPECTED4),
-])
+@pytest.mark.parametrize(
+    "input_s,expected",
+    [
+        (INPUT_S1, EXPECTED1),
+        (INPUT_S2, EXPECTED2),
+        (INPUT_S3, EXPECTED3),
+        (INPUT_S4, EXPECTED4),
+    ],
+)
 def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
 
-@pytest.mark.skip("Not implemented")
 def test_input() -> None:
     result = compute(read_input())
 
-    assert result == 6725
+    assert result == 383
 
 
 def read_input() -> str:
@@ -187,7 +248,7 @@ if __name__ == "__main__":
     print("Answer is:     ", compute(input_data))
 
     if "-b" in sys.argv:
-        number_of_runs = 1000
+        number_of_runs = 10
         bench_time = timeit.timeit(
             "compute(data)",
             setup="from __main__ import compute",
