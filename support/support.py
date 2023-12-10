@@ -8,7 +8,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Generator, Iterable
+from typing import Callable, Generator, Iterable
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -195,8 +195,13 @@ class Range:
         return result
 
 
+FilterFunc = Callable[
+    [Iterable[tuple[int, int]]], Generator[tuple[int, int], None, None]
+]
+
+
 def neighbors_cross(
-    x: int, y: int, *, max_bounds: tuple[int, int] | None = None
+    x: int, y: int, *, filter_gen: FilterFunc | None = None
 ) -> Generator[tuple[int, int], None, None]:
     neighbors = (
         (x, y - 1),
@@ -204,10 +209,12 @@ def neighbors_cross(
         (x + 1, y),
         (x, y + 1),
     )
-    yield from _filter_neighbors(neighbors, max_bounds=max_bounds)
+    if filter_gen is not None:
+        neighbors = filter_gen(neighbors)
+    yield from neighbors
 
 
-def _filter_neighbors(
+def filter_neighbors(
     neighbors: Iterable[tuple[int, int]], *, max_bounds: tuple[int, int] | None
 ) -> Generator[tuple[int, int], None, None]:
     if max_bounds is None:
@@ -220,7 +227,7 @@ def _filter_neighbors(
 
 
 def neighbors_diag(
-    x: int, y: int, *, max_bounds: tuple[int, int] | None = None
+    x: int, y: int, *, filter_gen: FilterFunc | None = None
 ) -> Generator[tuple[int, int], None, None]:
     neighbors = (
         (x - 1, y - 1),
@@ -228,11 +235,13 @@ def neighbors_diag(
         (x - 1, y + 1),
         (x + 1, y + 1),
     )
-    yield from _filter_neighbors(neighbors, max_bounds=max_bounds)
+    if filter_gen is not None:
+        neighbors = filter_gen(neighbors)
+    yield from neighbors
 
 
 def neighbors_cross_diag(
-    x: int, y: int, *, max_bounds: tuple[int, int] | None = None
+    x: int, y: int, *, filter_gen: FilterFunc | None = None
 ) -> Generator[tuple[int, int], None, None]:
-    yield from neighbors_cross(x, y, max_bounds=max_bounds)
-    yield from neighbors_diag(x, y, max_bounds=max_bounds)
+    yield from neighbors_cross(x, y, filter_gen=filter_gen)
+    yield from neighbors_diag(x, y, filter_gen=filter_gen)
