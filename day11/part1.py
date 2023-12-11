@@ -16,37 +16,27 @@ INPUT_TXT = Path(__file__).parent / "input.txt"
 def compute(s: str) -> int:
     lines = s.splitlines()
     galaxy = []
-    clear_rows = list(range(len(lines)))
-    clear_cols = list(range(len(lines[0])))
+    clear_rows = set(range(len(lines)))
+    clear_cols = set(range(len(lines[0])))
     planets = []
     for x, line in enumerate(s.splitlines()):
         galaxy.append([])
         for y, char in enumerate(line):
             if char == "#":
-                with suppress(ValueError):
+                with suppress(KeyError):
                     clear_rows.remove(x)
-                with suppress(ValueError):
+                with suppress(KeyError):
                     clear_cols.remove(y)
                 planets.append((x, y))
             galaxy[-1].append(char)
 
     result = 0
     for p1, p2 in itertools.combinations(planets, 2):
-        intersection_x = set(clear_rows) & set(range(min(p1[0], p2[0]), max(p1[0], p2[0])))
-        intersection_y = set(clear_cols) & set(range(min(p1[1], p2[1]), max(p1[1], p2[1])))
-        x_expand = len(intersection_x)
-        y_expand = len(intersection_y)
-        x1, y1 = p1
-        x2, y2 = p2
-        if x1 < x2:
-            x2 += x_expand
-        else:
-            x1 += x_expand
-        if y1 < y2:
-            y2 += y_expand
-        else:
-            y1 += y_expand
-        result += shortest_path((x1, y1), (x2, y2))
+        x1, x2 = min(p1[0], p2[0]), max(p1[0], p2[0])
+        y1, y2 = min(p1[1], p2[1]), max(p1[1], p2[1])
+        x_expand = len(clear_rows & set(range(x1, x2)))
+        y_expand = len(clear_cols & set(range(y1, y2)))
+        result += shortest_path((x1, y1), (x2 + x_expand, y2 + y_expand))
     return result
 
 
@@ -90,7 +80,7 @@ if __name__ == "__main__":
     print("Answer is:     ", compute(input_data))
 
     if "-b" in sys.argv:
-        number_of_runs = 1000
+        number_of_runs = 10
         bench_time = timeit.timeit(
             "compute(data)",
             setup="from __main__ import compute",
