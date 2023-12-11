@@ -3,7 +3,6 @@ from __future__ import annotations
 import itertools
 import sys
 import timeit
-from contextlib import suppress
 from pathlib import Path
 
 import pytest
@@ -39,12 +38,8 @@ def compute(s: str) -> int:
         y_expand = len(clear_cols & set(range(y1, y2)))
         x2_expanded = x2 + (x_expand * expansion_times) - x_expand
         y2_expanded = y2 + (y_expand * expansion_times) - y_expand
-        result += shortest_path((x1, y1), (x2_expanded, y2_expanded))
+        result += sup.сartesian_shortest_path((x1, y1), (x2_expanded, y2_expanded))
     return result
-
-
-def shortest_path(coords1: tuple[int, int], coords2: tuple[int, int]) -> int:
-    return abs(coords1[0] - coords2[0]) + abs(coords1[1] - coords2[1])
 
 
 INPUT_S = """\

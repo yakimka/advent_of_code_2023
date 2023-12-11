@@ -245,3 +245,7 @@ def neighbors_cross_diag(
 ) -> Generator[tuple[int, int], None, None]:
     yield from neighbors_cross(x, y, filter_gen=filter_gen)
     yield from neighbors_diag(x, y, filter_gen=filter_gen)
+
+
+def сartesian_shortest_path(coords1: tuple[int, int], coords2: tuple[int, int]) -> int:
+    return abs(coords1[0] - coords2[0]) + abs(coords1[1] - coords2[1])
