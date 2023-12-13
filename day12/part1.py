@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import sys
 import timeit
-from pathlib import Path
 from itertools import product
+from pathlib import Path
 
 import pytest
 
@@ -13,7 +13,7 @@ INPUT_TXT = Path(__file__).parent / "input.txt"
 
 
 def validate_combination(combination: str, group_sizes: list[int]) -> bool:
-    groups = [len(group) for group in combination.split('.') if group]
+    groups = [len(group) for group in combination.split(".") if group]
 
     return groups == group_sizes
 
@@ -21,11 +21,11 @@ def validate_combination(combination: str, group_sizes: list[int]) -> bool:
 def compute(s: str) -> int:
     total_count = 0
     for line in s.splitlines():
-        spring_states, group_sizes = line.split(' ')
-        group_sizes = list(map(int, group_sizes.split(',')))
+        spring_states, group_sizes = line.split(" ")
+        group_sizes = list(map(int, group_sizes.split(",")))
 
-        unknown_count = spring_states.count('?')
-        possible_combinations = product('.#', repeat=unknown_count)
+        unknown_count = spring_states.count("?")
+        possible_combinations = product(".#", repeat=unknown_count)
 
         valid_combinations = 0
         for combination in possible_combinations:
@@ -33,11 +33,11 @@ def compute(s: str) -> int:
             temp_spring_states = list(spring_states)
 
             for i, state in enumerate(temp_spring_states):
-                if state == '?':
+                if state == "?":
                     temp_spring_states[i] = combination[combination_index]
                     combination_index += 1
 
-            if validate_combination(''.join(temp_spring_states), group_sizes):
+            if validate_combination("".join(temp_spring_states), group_sizes):
                 valid_combinations += 1
 
         total_count += valid_combinations
@@ -68,7 +68,6 @@ def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
 
-@pytest.mark.skip("Set answer for refactoring")
 def test_input() -> None:
     result = compute(read_input())
 
