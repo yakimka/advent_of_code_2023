@@ -5,7 +5,6 @@ import timeit
 from collections import deque
 from itertools import cycle
 from pathlib import Path
-from typing import Generator
 
 import pytest
 
@@ -29,10 +28,18 @@ def compute(s: str) -> int:
     beams_count = len(bridge)
 
     results = []
+    seen = {}
     for i, direction in enumerate(cycle(["up", "left", "down", "right"])):
         state = divmod(i, 4)
-        if state == (250, 0):
-            return _extrapolate(results, 1_000_000_000)
+        if state[1] == 0:
+            bridge_hash = "".join("".join(row) for row in bridge)
+            if bridge_hash in seen:
+                first_seen = seen[bridge_hash][0]
+                window = state[0] - first_seen
+                pattern = results[-window:]
+                return pattern[(1_000_000_000 - first_seen) % window - 1]
+            else:
+                seen[bridge_hash] = state
         stack = deque(sorted(next_stack, key=sort_key(direction)))
         next_stack = []
         result = 0
@@ -50,39 +57,6 @@ def compute(s: str) -> int:
             results.append(result)
 
     raise RuntimeError("Should not be here")
-
-
-def _extrapolate(results: list[int], cycle_num: int) -> int:
-    results_len = len(results)
-    if results_len >= cycle_num:
-        raise ValueError("Cycle number is too small")
-
-    window = 3
-    pattern = None
-    while window < results_len / 2:
-        if len(set(_three_windows_from_end(results, window))) == 1:
-            pattern = results[-window:]
-            break
-        else:
-            window += 1
-
-    if pattern is None:
-        raise RuntimeError("Cannot find pattern. Try to enlarge results list")
-
-    return pattern[(cycle_num - results_len) % window - 1]
-
-
-def _three_windows_from_end(
-    results: list[int], n: int
-) -> Generator[tuple[int, ...], None, None]:
-    end = len(results) - 1
-    slices = (
-        (end - n, end),
-        (end - n * 2, end - n),
-        (end - n * 3, end - n * 2),
-    )
-    for start, end in slices:
-        yield tuple(results[start:end])
 
 
 def get_next_coords(bridge, x: int, y: int, direction: str) -> Coords | None:
@@ -157,7 +131,7 @@ if __name__ == "__main__":
     print("Answer is:     ", compute(input_data))
 
     if "-b" in sys.argv:
-        number_of_runs = 1000
+        number_of_runs = 10
         bench_time = timeit.timeit(
             "compute(data)",
             setup="from __main__ import compute",
