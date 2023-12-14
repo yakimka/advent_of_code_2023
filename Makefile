@@ -34,13 +34,17 @@ lint:
 	@.venv/bin/pre-commit run --all-files
 
 test:
-	@for num in `seq -w 1 31`; do \
+	@fail=0; \
+	for num in `seq -w 1 31`; do \
 		day="day$$num"; \
 		if [ -d "$$day" ]; then \
 			echo "Testing in $$day"; \
-			(cd $$day; pytest part*.py -v); \
-		fi \
-	done
+			(cd $$day; pytest part*.py -v) || fail=1; \
+		fi; \
+	done; \
+	if [ $$fail -eq 1 ]; then \
+		exit 1; \
+	fi
 
 benchmark:
 	@if [ "$(off-formatting)" != "1" ]; then \
