@@ -154,17 +154,6 @@ def compute(s: str) -> int:
     return result
 
 
-def count_empty(x, y, field, filter_gen) -> int:
-    value = field[x][y]
-    if value != ".":
-        return 0
-
-    field[x][y] = "X"
-
-    coords = ((x, y) for x, y in sup.neighbors_cross(x, y, filter_gen=filter_gen))
-    return 1 + sum(count_empty(x, y, field, filter_gen) for x, y in coords)
-
-
 INPUT_S1 = """\
 ...........
 .S-------7.

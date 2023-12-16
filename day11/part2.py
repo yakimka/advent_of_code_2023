@@ -38,7 +38,7 @@ def compute(s: str) -> int:
         y_expand = len(clear_cols & set(range(y1, y2)))
         x2_expanded = x2 + (x_expand * expansion_times) - x_expand
         y2_expanded = y2 + (y_expand * expansion_times) - y_expand
-        result += sup.сartesian_shortest_path((x1, y1), (x2_expanded, y2_expanded))
+        result += sup.cartesian_shortest_path((x1, y1), (x2_expanded, y2_expanded))
     return result
 
 

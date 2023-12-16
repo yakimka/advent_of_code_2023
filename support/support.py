@@ -8,7 +8,8 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Callable, Generator, Iterable
+from functools import partial
+from typing import Any, Callable, Generator, Iterable, TypeVar
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -195,57 +196,99 @@ class Range:
         return result
 
 
-FilterFunc = Callable[
-    [Iterable[tuple[int, int]]], Generator[tuple[int, int], None, None]
-]
+Coords = tuple[int, int]
+inf_coords = (float("inf"), float("inf"))
+T = TypeVar("T")
+
+
+def make_matrix_from_input(
+    s: str, *, split_by: str = "", cast_func: Callable[[str], T] = str
+) -> tuple[list[list[T]], int, int]:
+    matrix = []
+    for line in s.strip().splitlines():
+        if split_by:
+            line = line.split(split_by)
+        if cast_func is not str:
+            matrix.append([cast_func(item) for item in line])
+        else:
+            matrix.append(list(line))
+
+    m_len = len(matrix)
+    n_len = len(matrix[0])
+    return matrix, m_len, n_len
+
+
+FilterFunc = Callable[[Iterable[Coords]], Generator[Coords, None, None]]
 
 
 def neighbors_cross(
-    x: int, y: int, *, filter_gen: FilterFunc | None = None
-) -> Generator[tuple[int, int], None, None]:
+    m: int, n: int, *, max_bounds: Coords = inf_coords
+) -> Generator[Coords, None, None]:
     neighbors = (
-        (x, y - 1),
-        (x - 1, y),
-        (x + 1, y),
-        (x, y + 1),
+        (m, n - 1),
+        (m - 1, n),
+        (m + 1, n),
+        (m, n + 1),
     )
-    if filter_gen is not None:
-        neighbors = filter_gen(neighbors)
-    yield from neighbors
+    yield from filter_neighbors(neighbors, max_bounds=max_bounds)
 
 
 def filter_neighbors(
-    neighbors: Iterable[tuple[int, int]], *, max_bounds: tuple[int, int] | None
-) -> Generator[tuple[int, int], None, None]:
-    if max_bounds is None:
-        max_bounds = (float("inf"), float("inf"))
+    neighbors: Iterable[Coords], *, max_bounds: Coords = inf_coords
+) -> Generator[Coords, None, None]:
     yield from (
-        (x, y)
-        for x, y in neighbors
-        if 0 <= x <= max_bounds[0] and 0 <= y <= max_bounds[1]
+        (m, n)
+        for m, n in neighbors
+        if 0 <= m <= max_bounds[0] and 0 <= n <= max_bounds[1]
     )
 
 
 def neighbors_diag(
-    x: int, y: int, *, filter_gen: FilterFunc | None = None
-) -> Generator[tuple[int, int], None, None]:
+    m: int, n: int, *, max_bounds: Coords = inf_coords
+) -> Generator[Coords, None, None]:
     neighbors = (
-        (x - 1, y - 1),
-        (x + 1, y - 1),
-        (x - 1, y + 1),
-        (x + 1, y + 1),
+        (m - 1, n - 1),
+        (m + 1, n - 1),
+        (m - 1, n + 1),
+        (m + 1, n + 1),
     )
-    if filter_gen is not None:
-        neighbors = filter_gen(neighbors)
-    yield from neighbors
+    yield from filter_neighbors(neighbors, max_bounds=max_bounds)
 
 
 def neighbors_cross_diag(
-    x: int, y: int, *, filter_gen: FilterFunc | None = None
-) -> Generator[tuple[int, int], None, None]:
-    yield from neighbors_cross(x, y, filter_gen=filter_gen)
-    yield from neighbors_diag(x, y, filter_gen=filter_gen)
+    m: int, n: int, *, max_bounds: Coords = inf_coords
+) -> Generator[Coords, None, None]:
+    yield from neighbors_cross(m, n, max_bounds=max_bounds)
+    yield from neighbors_diag(m, n, max_bounds=max_bounds)
 
 
-def сartesian_shortest_path(coords1: tuple[int, int], coords2: tuple[int, int]) -> int:
+def cartesian_shortest_path(coords1: Coords, coords2: Coords) -> int:
     return abs(coords1[0] - coords2[0]) + abs(coords1[1] - coords2[1])
+
+
+def next_coords(
+    m: int, n: int, direction: str, max_bounds: tuple[int, int] = inf_coords
+) -> Coords | None:
+    if direction == "up":
+        next_m, next_n = m - 1, n
+    elif direction == "down":
+        next_m, next_n = m + 1, n
+    elif direction == "left":
+        next_m, next_n = m, n - 1
+    elif direction == "right":
+        next_m, next_n = m, n + 1
+    else:
+        raise ValueError(f"Unknown direction {direction}")
+
+    if 0 > next_m or 0 > next_n or next_m >= max_bounds[0] or next_n >= max_bounds[1]:
+        return None
+
+    return next_m, next_n
+
+
+TC = TypeVar("TC")
+
+
+def max_bounds_closure(func: TC, matrix: list[list[Any]]) -> TC:
+    max_bounds = (len(matrix), len(matrix[0]))
+    return partial(func, max_bounds=max_bounds)
