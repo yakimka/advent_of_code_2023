@@ -1,6 +1,6 @@
 import pytest
 
-from support import сartesian_shortest_path
+from support import cartesian_shortest_path
 
 
 @pytest.mark.parametrize(
@@ -15,4 +15,4 @@ from support import сartesian_shortest_path
 def test_shortest_path(
     coords1: tuple[int, int], coords2: tuple[int, int], expected: int
 ) -> None:
-    assert сartesian_shortest_path(coords1, coords2) == expected
+    assert cartesian_shortest_path(coords1, coords2) == expected
