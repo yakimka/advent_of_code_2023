@@ -45,7 +45,7 @@ pytest part2.py && python part2.py | aoc-submit --part=2
 
 ## Benchmarks
 
-Measuring average time of run.
+Measuring average time of run
 
 Hardware: Macbook Air M1, 16 GB RAM
 
