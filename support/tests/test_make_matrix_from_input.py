@@ -15,11 +15,11 @@ from support import make_matrix_from_input
 )
 def test_make_string_matrix_from_input(input_s) -> None:
     result = make_matrix_from_input(input_s)
-    matrix, width, height = result
+    matrix, m_len, n_len = result
 
     assert matrix == [[".", "#", "."], ["#", "#", "#"]]
-    assert width == 3
-    assert height == 2
+    assert m_len == 2
+    assert n_len == 3
 
 
 @pytest.mark.parametrize(
@@ -31,4 +31,4 @@ def test_make_string_matrix_from_input(input_s) -> None:
 def test_make_int_matrix_from_input(input_s, expected) -> None:
     result = make_matrix_from_input(input_s, split_by=" ", cast_func=int)
 
-    assert result == (expected, 2, 3)
+    assert result == (expected, 3, 2)
