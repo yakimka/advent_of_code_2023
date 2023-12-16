@@ -8,7 +8,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Callable, Generator, Iterable
+from typing import Callable, Generator, Iterable, TypeVar
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -249,3 +249,23 @@ def neighbors_cross_diag(
 
 def cartesian_shortest_path(coords1: tuple[int, int], coords2: tuple[int, int]) -> int:
     return abs(coords1[0] - coords2[0]) + abs(coords1[1] - coords2[1])
+
+
+T = TypeVar("T")
+
+
+def make_matrix_from_input(
+    s: str, *, split_by: str = "", cast_func: Callable[[str], T] = str
+) -> tuple[list[list[T]], int, int]:
+    matrix = []
+    for line in s.strip().splitlines():
+        if split_by:
+            line = line.split(split_by)
+        if cast_func is not str:
+            matrix.append([cast_func(item) for item in line])
+        else:
+            matrix.append(list(line))
+
+    width = len(matrix[0])
+    height = len(matrix)
+    return matrix, width, height
