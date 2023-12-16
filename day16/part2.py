@@ -17,7 +17,6 @@ Move = tuple[int, int, str]
 def compute(s: str) -> int:
     matrix, _, _ = sup.make_matrix_from_input(s)
     next_coords = sup.max_bounds_closure(sup.next_coords, matrix)
-    seen_mirrors = set()
 
     max_seen = 0
     for move in get_first_moves(matrix):
@@ -46,15 +45,6 @@ def get_first_moves(matrix) -> list[Move]:
     moves = []
     m_len = len(matrix)
     n_len = len(matrix[0])
-    for n in range(n_len):
-        moves.append((0, n, "down"))
-        moves.append((m_len - 1, n, "up"))
-        if n > 0:
-            moves.append((0, n, "left"))
-            moves.append((m_len - 1, n, "left"))
-        if n < n_len - 1:
-            moves.append((0, n, "right"))
-            moves.append((m_len - 1, n, "right"))
     for m in range(m_len):
         moves.append((m, 0, "right"))
         moves.append((m, n_len - 1, "left"))
@@ -64,6 +54,15 @@ def get_first_moves(matrix) -> list[Move]:
         if m < m_len - 1:
             moves.append((m, 0, "down"))
             moves.append((m, n_len - 1, "down"))
+    for n in range(n_len):
+        moves.append((0, n, "down"))
+        moves.append((m_len - 1, n, "up"))
+        if n > 0:
+            moves.append((0, n, "left"))
+            moves.append((m_len - 1, n, "left"))
+        if n < n_len - 1:
+            moves.append((0, n, "right"))
+            moves.append((m_len - 1, n, "right"))
     return moves
 
 
@@ -112,6 +111,7 @@ def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
 
+# @pytest.mark.skip(reason="Too slow")
 def test_input() -> None:
     result = compute(read_input())
 
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     print("Answer is:     ", compute(input_data))
 
     if "-b" in sys.argv:
-        number_of_runs = 1000
+        number_of_runs = 3
         bench_time = timeit.timeit(
             "compute(data)",
             setup="from __main__ import compute",
