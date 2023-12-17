@@ -1,6 +1,6 @@
 import pytest
 
-from support import num_of_prev_coords
+from support import num_of_next_coords
 
 MAX_BOUNDS = (5, 10)
 
@@ -43,9 +43,9 @@ MAX_BOUNDS = (5, 10)
         ((4, 9), "up", MAX_BOUNDS, 4),
     ],
 )
-def test_num_of_prev_coords(coords, direction, max_bounds, expected):
+def test_num_of_next_coords(coords, direction, max_bounds, expected):
     m, n = coords
 
-    result = num_of_prev_coords(m, n, direction, max_bounds=max_bounds)
+    result = num_of_next_coords(m, n, direction, max_bounds=max_bounds)
 
     assert result == expected

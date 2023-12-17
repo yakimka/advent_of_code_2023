@@ -287,7 +287,7 @@ def next_coords(
     return next_m, next_n
 
 
-def num_of_prev_coords(
+def num_of_next_coords(
     m: int, n: int, direction: str, max_bounds: tuple[int, int] = inf_coords
 ) -> int:
     if direction == "up":

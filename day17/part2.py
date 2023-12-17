@@ -23,26 +23,26 @@ OPPOSITE_DIRECTIONS_MAP = {
 
 def compute(s: str) -> int:
     matrix, len_m, len_n = sup.make_matrix_from_input(s, cast_func=int)
-    graph = create_graph(matrix)
+    graph = create_graph(matrix, len_m, len_n)
     dist, _ = sup.dijkstra(graph, ((0, 0), "right", 1))
     return min(
         v for k, v in dist.items() if k[0] == (len_m - 1, len_n - 1) and k[2] >= 4
     )
 
 
-def create_graph(matrix):
+def create_graph(matrix, len_m, len_n):
     graph = {}
     next_coords = sup.max_bounds_closure(sup.next_coords, matrix)
-    num_of_prev_coords = sup.max_bounds_closure(sup.num_of_prev_coords, matrix)
+    num_of_next_coords = sup.max_bounds_closure(sup.num_of_next_coords, matrix)
     max_blocks = 10
     source = (0, 0)
     for start_m, start_n, start_steps_num, start_direction in product(
-        range(len(matrix)), range(len(matrix[0])), range(1, max_blocks + 1), DIRECTIONS
+        range(len_m), range(len_n), range(1, max_blocks + 1), DIRECTIONS
     ):
         start_coords = (start_m, start_n)
         opposite_direction = OPPOSITE_DIRECTIONS_MAP[start_direction]
         if start_steps_num > 1:
-            prev_coords_count = num_of_prev_coords(start_m, start_n, opposite_direction)
+            prev_coords_count = num_of_next_coords(start_m, start_n, opposite_direction)
             need_prev_coords = start_steps_num - 1
             # don't have enough prev coords
             if need_prev_coords > prev_coords_count:
@@ -55,6 +55,12 @@ def create_graph(matrix):
             if dest_coords := next_coords(start_m, start_n, dest_direction):
                 if dest_direction == opposite_direction:
                     continue
+                if (
+                    start_steps_num < 4
+                    and start_direction != dest_direction
+                    and start_coords != source
+                ):
+                    continue
                 dest_m, dest_n = dest_coords
                 dest_steps_num = start_steps_num
                 if start_direction == dest_direction:
@@ -64,12 +70,6 @@ def create_graph(matrix):
                 if dest_steps_num > max_blocks:
                     continue
                 dest_key = (dest_coords, dest_direction, dest_steps_num)
-                if (
-                    start_steps_num < 4
-                    and start_direction != dest_direction
-                    and start_coords != source
-                ):
-                    continue
                 value = matrix[dest_m][dest_n]
                 graph.setdefault(start_key, {})[dest_key] = value
     return graph
