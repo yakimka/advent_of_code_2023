@@ -64,7 +64,7 @@ def create_graph(matrix):
     return graph
 
 
-INPUT_S = """\
+INPUT_S1 = """\
 2413432311323
 3215453535623
 3255245654254
@@ -79,10 +79,23 @@ INPUT_S = """\
 2546548887735
 4322674655533
 """
-EXPECTED = 102
+EXPECTED1 = 94
+INPUT_S2 = """\
+111111111111
+999999999991
+999999999991
+999999999991
+999999999991
+"""
+EXPECTED2 = 71
 
 
-@pytest.mark.parametrize("input_s,expected", [(INPUT_S, EXPECTED)])
+@pytest.mark.parametrize(
+    "input_s,expected",
+    [
+        (INPUT_S1, EXPECTED1),
+    ],
+)
 def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 

@@ -287,6 +287,21 @@ def next_coords(
     return next_m, next_n
 
 
+def num_of_prev_coords(
+    m: int, n: int, direction: str, max_bounds: tuple[int, int] = inf_coords
+) -> int:
+    if direction == "up":
+        return m
+    elif direction == "down":
+        return max_bounds[0] - m
+    elif direction == "left":
+        return n
+    elif direction == "right":
+        return max_bounds[1] - n
+    else:
+        raise ValueError(f"Unknown direction {direction}")
+
+
 TC = TypeVar("TC")
 
 
