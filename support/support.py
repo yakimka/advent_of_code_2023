@@ -310,9 +310,12 @@ def max_bounds_closure(func: TC, matrix: list[list[Any]]) -> TC:
     return partial(func, max_bounds=max_bounds)
 
 
+HT = TypeVar("HT", bound=Hashable)
+
+
 def dijkstra(
-    graph: dict[Hashable, dict[Hashable, int]], source: Hashable
-) -> tuple[dict[Hashable, int], dict[Hashable, str]]:
+    graph: dict[HT, dict[HT, int]], source: HT
+) -> tuple[dict[HT, int], dict[HT, str]]:
     dist = {key: float("inf") for key in graph}
     dist[source] = 0
     prev = {key: None for key in graph}
