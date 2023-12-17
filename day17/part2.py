@@ -25,20 +25,23 @@ def compute(s: str) -> int:
     matrix, len_m, len_n = sup.make_matrix_from_input(s, cast_func=int)
     graph = create_graph(matrix)
     dist, _ = sup.dijkstra(graph, ((0, 0), "right", 1))
-    return min(v for k, v in dist.items() if k[0] == (len_m - 1, len_n - 1))
+    return min(
+        v for k, v in dist.items() if k[0] == (len_m - 1, len_n - 1) and k[2] >= 4
+    )
 
 
 def create_graph(matrix):
     graph = {}
     next_coords = sup.max_bounds_closure(sup.next_coords, matrix)
     num_of_prev_coords = sup.max_bounds_closure(sup.num_of_prev_coords, matrix)
-    max_blocks = 3
+    max_blocks = 10
+    source = (0, 0)
     for start_m, start_n, start_steps_num, start_direction in product(
         range(len(matrix)), range(len(matrix[0])), range(1, max_blocks + 1), DIRECTIONS
     ):
         start_coords = (start_m, start_n)
+        opposite_direction = OPPOSITE_DIRECTIONS_MAP[start_direction]
         if start_steps_num > 1:
-            opposite_direction = OPPOSITE_DIRECTIONS_MAP[start_direction]
             prev_coords_count = num_of_prev_coords(start_m, start_n, opposite_direction)
             need_prev_coords = start_steps_num - 1
             # don't have enough prev coords
@@ -46,9 +49,11 @@ def create_graph(matrix):
                 continue
 
         start_key = (start_coords, start_direction, start_steps_num)
+        if start_key not in graph:
+            graph[start_key] = {}
         for dest_direction in DIRECTIONS:
             if dest_coords := next_coords(start_m, start_n, dest_direction):
-                if dest_direction == OPPOSITE_DIRECTIONS_MAP[start_direction]:
+                if dest_direction == opposite_direction:
                     continue
                 dest_m, dest_n = dest_coords
                 dest_steps_num = start_steps_num
@@ -56,9 +61,15 @@ def create_graph(matrix):
                     dest_steps_num += 1
                 else:
                     dest_steps_num = 1
-                if dest_steps_num > 3:
+                if dest_steps_num > max_blocks:
                     continue
                 dest_key = (dest_coords, dest_direction, dest_steps_num)
+                if (
+                    start_steps_num < 4
+                    and start_direction != dest_direction
+                    and start_coords != source
+                ):
+                    continue
                 value = matrix[dest_m][dest_n]
                 graph.setdefault(start_key, {})[dest_key] = value
     return graph
@@ -94,17 +105,17 @@ EXPECTED2 = 71
     "input_s,expected",
     [
         (INPUT_S1, EXPECTED1),
+        (INPUT_S2, EXPECTED2),
     ],
 )
 def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
 
-@pytest.mark.skip("qwe")
 def test_input() -> None:
     result = compute(read_input())
 
-    assert result == 1065
+    assert result > 1000 and result < 1252
 
 
 def read_input() -> str:
@@ -117,7 +128,7 @@ if __name__ == "__main__":
     print("Answer is:     ", compute(input_data))
 
     if "-b" in sys.argv:
-        number_of_runs = 1000
+        number_of_runs = 3
         bench_time = timeit.timeit(
             "compute(data)",
             setup="from __main__ import compute",

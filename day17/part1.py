@@ -56,7 +56,7 @@ def create_graph(matrix):
                     dest_steps_num += 1
                 else:
                     dest_steps_num = 1
-                if dest_steps_num > 3:
+                if dest_steps_num > max_blocks:
                     continue
                 dest_key = (dest_coords, dest_direction, dest_steps_num)
                 value = matrix[dest_m][dest_n]
@@ -87,7 +87,6 @@ def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
 
-@pytest.mark.skip("qwe")
 def test_input() -> None:
     result = compute(read_input())
 
@@ -104,7 +103,7 @@ if __name__ == "__main__":
     print("Answer is:     ", compute(input_data))
 
     if "-b" in sys.argv:
-        number_of_runs = 1000
+        number_of_runs = 10
         bench_time = timeit.timeit(
             "compute(data)",
             setup="from __main__ import compute",
