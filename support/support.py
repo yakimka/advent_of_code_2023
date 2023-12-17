@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import heapq
 import os.path
 import re
 import sys
@@ -9,7 +10,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from functools import partial
-from typing import Any, Callable, Generator, Iterable, TypeVar
+from typing import Any, Callable, Generator, Hashable, Iterable, TypeVar
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -280,7 +281,7 @@ def next_coords(
     else:
         raise ValueError(f"Unknown direction {direction}")
 
-    if 0 > next_m or 0 > next_n or next_m >= max_bounds[0] or next_n >= max_bounds[1]:
+    if 0 > next_m or 0 > next_n or next_m > max_bounds[0] or next_n > max_bounds[1]:
         return None
 
     return next_m, next_n
@@ -290,5 +291,26 @@ TC = TypeVar("TC")
 
 
 def max_bounds_closure(func: TC, matrix: list[list[Any]]) -> TC:
-    max_bounds = (len(matrix), len(matrix[0]))
+    max_bounds = (len(matrix) - 1, len(matrix[0]) - 1)
     return partial(func, max_bounds=max_bounds)
+
+
+def dijkstra(
+    graph: dict[Hashable, dict[Hashable, int]], source: Hashable
+) -> tuple[dict[Hashable, int], dict[Hashable, str]]:
+    dist = {key: float("inf") for key in graph}
+    dist[source] = 0
+    prev = {key: None for key in graph}
+    visited = {key: False for key in graph}
+    pq = [(0, source)]
+    while pq:
+        _, u = heapq.heappop(pq)
+        if visited[u]:
+            continue
+        visited[u] = True
+        for vertex, val in graph[u].items():
+            if dist[u] + val < dist[vertex]:
+                dist[vertex] = dist[u] + val
+                prev[vertex] = u
+                heapq.heappush(pq, (dist[vertex], vertex))
+    return dist, prev
