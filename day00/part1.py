@@ -26,7 +26,12 @@ INPUT_S = """\
 EXPECTED = 21000
 
 
-@pytest.mark.parametrize("input_s,expected", [(INPUT_S, EXPECTED)])
+@pytest.mark.parametrize(
+    "input_s,expected",
+    [
+        (INPUT_S, EXPECTED),
+    ],
+)
 def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
