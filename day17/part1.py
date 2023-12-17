@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import timeit
+from itertools import product
 from pathlib import Path
 
 import pytest
@@ -30,40 +31,37 @@ def compute(s: str) -> int:
 def create_graph(matrix):
     graph = {}
     next_coords = sup.max_bounds_closure(sup.next_coords, matrix)
-    for start_m, row in enumerate(matrix):
-        for start_n, _ in enumerate(row):
-            start_coords = (start_m, start_n)
-            for start_steps_num in range(1, 4):
-                for start_direction in DIRECTIONS:
-                    if start_steps_num > 1:
-                        opposite_direction = OPPOSITE_DIRECTIONS_MAP[start_direction]
-                        prev_coords = next_coords(*start_coords, opposite_direction)
-                        if (
-                            not prev_coords
-                            or start_steps_num == 3
-                            and not next_coords(*prev_coords, opposite_direction)
-                        ):
-                            continue
 
-                    start_key = (start_coords, start_direction, start_steps_num)
-                    for dest_direction in DIRECTIONS:
-                        if dest_coords := next_coords(start_m, start_n, dest_direction):
-                            if (
-                                dest_direction
-                                == OPPOSITE_DIRECTIONS_MAP[start_direction]
-                            ):
-                                continue
-                            dest_m, dest_n = dest_coords
-                            dest_steps_num = start_steps_num
-                            if start_direction == dest_direction:
-                                dest_steps_num += 1
-                            else:
-                                dest_steps_num = 1
-                            if dest_steps_num > 3:
-                                continue
-                            dest_key = (dest_coords, dest_direction, dest_steps_num)
-                            value = matrix[dest_m][dest_n]
-                            graph.setdefault(start_key, {})[dest_key] = value
+    for start_m, start_n, start_steps_num, start_direction in product(
+        range(len(matrix)), range(len(matrix[0])), range(1, 4), DIRECTIONS
+    ):
+        start_coords = (start_m, start_n)
+        if start_steps_num > 1:
+            opposite_direction = OPPOSITE_DIRECTIONS_MAP[start_direction]
+            prev_coords = next_coords(*start_coords, opposite_direction)
+            if (
+                not prev_coords
+                or start_steps_num == 3
+                and not next_coords(*prev_coords, opposite_direction)
+            ):
+                continue
+
+        start_key = (start_coords, start_direction, start_steps_num)
+        for dest_direction in DIRECTIONS:
+            if dest_coords := next_coords(start_m, start_n, dest_direction):
+                if dest_direction == OPPOSITE_DIRECTIONS_MAP[start_direction]:
+                    continue
+                dest_m, dest_n = dest_coords
+                dest_steps_num = start_steps_num
+                if start_direction == dest_direction:
+                    dest_steps_num += 1
+                else:
+                    dest_steps_num = 1
+                if dest_steps_num > 3:
+                    continue
+                dest_key = (dest_coords, dest_direction, dest_steps_num)
+                value = matrix[dest_m][dest_n]
+                graph.setdefault(start_key, {})[dest_key] = value
     return graph
 
 
