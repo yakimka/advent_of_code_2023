@@ -11,45 +11,9 @@ import support as sup
 INPUT_TXT = Path(__file__).parent / "input.txt"
 
 
-# 1  function Dijkstra(Graph, source):
-#  2
-#  3      for each vertex v in Graph.Vertices:
-#  4          dist[v] ← INFINITY
-#  5          prev[v] ← UNDEFINED
-#  6          add v to Q
-#  7      dist[source] ← 0
-#  8
-#  9      while Q is not empty:
-# 10          u ← vertex in Q with min dist[u]
-# 11          remove u from Q
-# 12
-# 13          for each neighbor v of u still in Q:
-# 14              alt ← dist[u] + Graph.Edges(u, v)
-# 15              if alt < dist[v]:
-# 16                  dist[v] ← alt
-# 17                  prev[v] ← u
-# 18
-# 19      return dist[], prev[]
-
-
-def dijkstra(graph: dict[str, dict[str, int]], source: str) -> tuple[dict[str, int], dict[str, str]]:
-    # """
-    # Find shortest paths from source to all vertices in graph.
-    # Example:
-    # >>> graph = {
-    # ...     "a": {"b": 7, "c": 9, "f": 14},
-    # ...     "b": {"a": 7, "c": 10, "d": 15},
-    # ...     "c": {"a": 9, "b": 10, "d": 11, "f": 2},
-    # ...     "d": {"b": 15, "c": 11, "e": 6},
-    # ...     "e": {"d": 6, "f": 9},
-    # ...     "f": {"a": 14, "c": 2, "e": 9},
-    # ... }
-    # >>> dist, prev = dijkstra(graph, "a")
-    # >>> dist["e"]
-    # 20
-    # >>> prev["e"]
-    # 'f'
-    # """
+def dijkstra(
+    graph: dict[str, dict[str, int]], source: str
+) -> tuple[dict[str, int], dict[str, str]]:
     dist: dict[str, int] = {}
     prev: dict[str, str] = {}
     q = set(graph.keys())
@@ -80,49 +44,53 @@ OPPOSITE_DIRECTIONS_MAP = {
     "right": "left",
 }
 
+
 def compute(s: str) -> int:
-    matrix, *_ = sup.make_matrix_from_input(s, cast_func=int)
+    matrix, len_m, len_n = sup.make_matrix_from_input(s, cast_func=int)
+    graph = create_graph(matrix)
+    dist, _ = dijkstra(graph, ((0, 0), "right", 1))
+    return min(v for k, v in dist.items() if k[0] == (len_m - 1, len_n - 1))
+
+
+def create_graph(matrix):
     graph = {}
     next_coords = sup.max_bounds_closure(sup.next_coords, matrix)
     for start_m, row in enumerate(matrix):
         for start_n, _ in enumerate(row):
             start_coords = (start_m, start_n)
-            start_steps_num = 1
-            for start_direction in DIRECTIONS:
-                start_key = (start_coords, start_direction, start_steps_num)
-                for dest_direction in DIRECTIONS:
-                    if dest_coords := next_coords(start_m, start_n, dest_direction):
-                        if dest_direction == OPPOSITE_DIRECTIONS_MAP[start_direction]:
+            for start_steps_num in range(1, 4):
+                for start_direction in DIRECTIONS:
+                    if start_steps_num > 1:
+                        prev_coords = next_coords(
+                            *start_coords, OPPOSITE_DIRECTIONS_MAP[start_direction]
+                        )
+                        if not prev_coords:
                             continue
-                        dest_m, dest_n = dest_coords
-                        dest_steps_num = start_steps_num
-                        if start_direction == dest_direction:
-                            dest_steps_num += 1
-                        else:
-                            dest_steps_num = 1
-                        if dest_steps_num > 3:
+                        if start_steps_num == 3 and not next_coords(
+                            *prev_coords, OPPOSITE_DIRECTIONS_MAP[start_direction]
+                        ):
                             continue
-                        dest_key = (dest_coords, dest_direction, dest_steps_num)
-                        value = matrix[dest_m][dest_n]
-                        graph.setdefault(start_key, {})[dest_key] = value
 
-
-    # bigger_steps = {}
-    # for start_key, dest in graph.items():
-    #     start_coords, direction, steps = start_key
-    #     opposite_direction = OPPOSITE_DIRECTIONS_MAP[direction]
-    #     if coords := next_coords(*start_coords, opposite_direction):
-    #         new_steps = steps + 1
-    #         new_key = (start_coords, direction, new_steps)
-    #         bigger_steps[new_key] = {(d_coords, d_direct, d_steps + 1): v for (d_coords, d_direct, d_steps), v in dest.items()}
-    #         if new_coords := next_coords(*coords, opposite_direction):
-    #             new_steps = steps + 2
-    #             new_key = (start_coords, direction, new_steps)
-    #             bigger_steps[new_key] = {(d_coords, d_direct, d_steps + 2): v for (d_coords, d_direct, d_steps), v in dest.items()}
-    # graph.update(bigger_steps)
-
-    res = dijkstra(graph, ((0, 0), "right", 1))
-    return 0
+                    start_key = (start_coords, start_direction, start_steps_num)
+                    for dest_direction in DIRECTIONS:
+                        if dest_coords := next_coords(start_m, start_n, dest_direction):
+                            if (
+                                dest_direction
+                                == OPPOSITE_DIRECTIONS_MAP[start_direction]
+                            ):
+                                continue
+                            dest_m, dest_n = dest_coords
+                            dest_steps_num = start_steps_num
+                            if start_direction == dest_direction:
+                                dest_steps_num += 1
+                            else:
+                                dest_steps_num = 1
+                            if dest_steps_num > 3:
+                                continue
+                            dest_key = (dest_coords, dest_direction, dest_steps_num)
+                            value = matrix[dest_m][dest_n]
+                            graph.setdefault(start_key, {})[dest_key] = value
+    return graph
 
 
 INPUT_S = """\
@@ -148,11 +116,10 @@ def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
 
-@pytest.mark.skip("Set answer for refactoring")
 def test_input() -> None:
     result = compute(read_input())
 
-    assert result == 0
+    assert result == 1065
 
 
 def read_input() -> str:
