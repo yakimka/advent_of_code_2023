@@ -12,10 +12,10 @@ INPUT_TXT = Path(__file__).parent / "input.txt"
 
 
 DIRECTION_MAP = {
-    "R": "right",
-    "D": "down",
-    "L": "left",
-    "U": "up",
+    "0": "right",
+    "1": "down",
+    "2": "left",
+    "3": "up",
 }
 
 
@@ -25,9 +25,9 @@ def compute(s: str) -> int:
     coordinates = [prev_coords]
     bounds = 0
     for line in s.splitlines():
-        direction, steps, *_ = line.split()
-        direction = DIRECTION_MAP[direction]
-        steps = int(steps)
+        _, instructions = line.split("(")
+        direction = DIRECTION_MAP[instructions[-2]]
+        steps = int(instructions[1:-2], 16)
         bounds += steps
         x, y = prev_coords
         prev_coords = sup.cartesian_next_coords(x, y, direction, size=steps)
@@ -64,7 +64,7 @@ U 3 (#a77fa3)
 L 2 (#015232)
 U 2 (#7a21e3)
 """
-EXPECTED = 62
+EXPECTED = 952408144115
 
 
 @pytest.mark.parametrize(
@@ -80,7 +80,7 @@ def test_debug(input_s: str, expected: int) -> None:
 def test_input() -> None:
     result = compute(read_input())
 
-    assert result == 50465
+    assert result == 82712746433310
 
 
 def read_input() -> str:

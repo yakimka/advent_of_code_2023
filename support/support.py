@@ -11,7 +11,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from functools import partial
-from typing import Any, Callable, Generator, Hashable, Iterable, TypeVar
+from typing import Any, Callable, Generator, Hashable, Iterable, TextIO, TypeVar
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
@@ -146,6 +146,45 @@ def humanized_seconds(seconds: float) -> str:
         return f"{seconds * 1_000_000:.0f}μs"
     else:
         return f"{seconds * 1_000_000_000:.0f}ns"
+
+
+@contextlib.contextmanager
+def timed(label: str) -> Generator[None, None, None]:
+    start = time.perf_counter()
+    try:
+        yield
+    finally:
+        end = time.perf_counter()
+        print(f"{label}: {humanized_seconds(end - start)}")
+
+
+def print_matrix(matrix: list[list[Any]], file: TextIO | None = None) -> None:
+    if not matrix or not matrix[0]:
+        print("Empty matrix")
+        return
+
+    # Find the maximum length of any item in the matrix for formatting.
+    max_item_len = max(len(str(item)) for row in matrix for item in row)
+
+    # Determine the width for row and column labels.
+    row_label_width = len(str(len(matrix) - 1))
+    col_label_width = max(max_item_len, len(str(len(matrix[0]) - 1)))
+
+    # Print column headers.
+    col_headers = [" " * row_label_width] + [
+        f"{i:<{col_label_width}}" for i in range(len(matrix[0]))
+    ]
+    if file is None:
+        # For cases when printing in pytest or etc.
+        print()
+    print(" ".join(col_headers), file=file)
+
+    # Print each row with its label.
+    for i, row in enumerate(matrix):
+        row_str = [f"{i:<{row_label_width}}"] + [
+            f"{str(item):<{col_label_width}}" for item in row
+        ]
+        print(" ".join(row_str), file=file)
 
 
 # ========================== helpers ==========================
@@ -372,13 +411,3 @@ def a_star(
                 prev[vertex] = current
 
     return dist, prev
-
-
-@contextlib.contextmanager
-def timed(label: str) -> Generator[None, None, None]:
-    start = time.perf_counter()
-    try:
-        yield
-    finally:
-        end = time.perf_counter()
-        print(f"{label}: {humanized_seconds(end - start)}")
