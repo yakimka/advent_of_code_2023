@@ -316,19 +316,58 @@ HT = TypeVar("HT", bound=Hashable)
 def dijkstra(
     graph: dict[HT, dict[HT, int]], source: HT
 ) -> tuple[dict[HT, int], dict[HT, str]]:
-    dist = {key: float("inf") for key in graph}
-    dist[source] = 0
-    prev = {key: None for key in graph}
-    visited = {key: False for key in graph}
+    dist = {source: 0}
+    prev = {source: None}
     pq = [(0, source)]
     while pq:
         _, u = heapq.heappop(pq)
-        if visited[u]:
-            continue
-        visited[u] = True
         for vertex, val in graph[u].items():
-            if dist[u] + val < dist[vertex]:
+            if vertex not in dist or dist[u] + val < dist[vertex]:
                 dist[vertex] = dist[u] + val
                 prev[vertex] = u
                 heapq.heappush(pq, (dist[vertex], vertex))
+    return dist, prev
+
+
+def a_star(
+    graph: dict[HT, dict[HT, int]],
+    source: HT,
+    target: HT,
+    heuristic: Callable[[HT, HT], int],
+) -> tuple[dict[HT, int], dict[HT, str]]:
+    """
+    A* algorithm implementation.
+
+    heuristic function must be admissible (never overestimate the distance to the goal).
+    https://en.wikipedia.org/wiki/A*_search_algorithm#Admissibility
+    for example, Manhattan distance is admissible.
+    >>> def heuristic(candidate, target):
+    ...     (x1, y1) = candidate
+    ...     (x2, y2) = target
+    ...     return abs(x1 - x2) + abs(y1 - y2)
+
+    :param graph: graph in format {vertex: {neighbor: cost}}
+    :param source: source vertex
+    :param target: target vertex
+    :param heuristic: heuristic function
+    :return: tuple of distance and previous vertex
+    """
+    dist = {source: 0}
+    prev = {source: None}
+    pq = [(0, source)]
+
+    while pq:
+        _, current = heapq.heappop(pq)
+
+        if current == target:
+            break
+
+        for vertex, val in graph[current].items():
+            new_cost = dist[current] + val
+            if vertex not in dist or new_cost < dist[vertex]:
+                dist[vertex] = new_cost
+                priority = new_cost + heuristic(vertex, target)
+                heapq.heappush(pq, (priority, vertex))
+                prev[vertex] = current
+
     return dist, prev

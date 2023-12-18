@@ -1,3 +1,5 @@
+from functools import partial
+
 import pytest
 
 import support as sup
@@ -23,10 +25,17 @@ def graph(matrix):
     }
 
 
-def test_dijkstra(graph) -> None:
+@pytest.mark.parametrize(
+    "function",
+    [
+        sup.dijkstra,
+        partial(sup.a_star, target=(2, 2), heuristic=lambda a, b: 0),
+    ],
+)
+def test_pathfinding_functions(graph, function) -> None:
     source = (0, 0)
 
-    result_dist, result_prev = sup.dijkstra(graph, source)
+    result_dist, result_prev = function(graph, source)
 
     assert result_dist == {
         (0, 0): 0,
