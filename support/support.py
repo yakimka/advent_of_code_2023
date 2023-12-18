@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import heapq
 import os.path
 import re
@@ -371,3 +372,13 @@ def a_star(
                 prev[vertex] = current
 
     return dist, prev
+
+
+@contextlib.contextmanager
+def timed(label: str) -> Generator[None, None, None]:
+    start = time.perf_counter()
+    try:
+        yield
+    finally:
+        end = time.perf_counter()
+        print(f"{label}: {humanized_seconds(end - start)}")
