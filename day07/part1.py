@@ -75,7 +75,6 @@ def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
 
-# @pytest.mark.skip("Set answer for refactoring")
 def test_input() -> None:
     result = compute(read_input())
 
