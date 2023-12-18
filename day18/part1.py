@@ -20,95 +20,32 @@ DIRECTION_MAP = {
 
 
 def compute(s: str) -> int:
-    matrix = [["." for _ in range(10)] for _ in range(10)]
-    m = 0
-    n = 0
+    prev_coords = (0, 0)
 
-    borders = 0
+    coordinates = [prev_coords]
+    bounds = 0
     for line in s.splitlines():
         direction, steps, *_ = line.split()
         direction = DIRECTION_MAP[direction]
         steps = int(steps)
-        borders += steps
-        for _ in range(steps):
-            m, n = _next_coords_and_extend_if_needed(matrix, m, n, direction)
-            matrix[m][n] = "#"
+        bounds += steps
+        x, y = prev_coords
+        prev_coords = sup.cartesian_next_coords(x, y, direction, size=steps)
+        coordinates.append(prev_coords)
 
-    start_m, start_n = _search_one_coords_inside_border(matrix)
-    filled = fill_matrix(matrix, start_m, start_n)
-    return borders + filled
+    # https://uk.wikipedia.org/wiki/Формула_площі_Гаусса#Складніший_приклад
+    area_in = 0
+    area_out = 0
+    for i in range(len(coordinates)):
+        x1, y1 = coordinates[i]
+        x2, y2 = coordinates[(i + 1) % len(coordinates)]
 
+        area_in += x1 * y2
+        area_out += x2 * y1
+    area = abs(area_in - area_out) // 2
 
-def fill_matrix(matrix, start_m, start_n, filler="#") -> int:
-    neighbors_cross_diag = sup.max_bounds_closure(sup.neighbors_cross_diag, matrix)
-    stack = [(start_m, start_n)]
-    count = 0
-    while stack:
-        m, n = stack.pop()
-        if matrix[m][n] == filler:
-            continue
-        matrix[m][n] = filler
-        count += 1
-        for neighbor in neighbors_cross_diag(m, n):
-            stack.append(neighbor)
-    return count
-
-
-def _search_one_coords_inside_border(matrix):
-    m_len = len(matrix)
-    n_len = len(matrix[0])
-    for m in range(m_len - 1):
-        for n in range(n_len - 1):
-            if matrix[m][n] == "#":
-                # Dont want to write complex logic for this case
-                #   if we have multiple # in one row - just skip it
-                #   (cause it can be a solid border: #########
-                #                                    #       #)
-                #   and go to the next row in hope to find single #
-                if matrix[m][n + 1] == "#":
-                    break
-                return m, n + 1
-    raise RuntimeError("No one coords inside border")
-
-
-def _next_coords_and_extend_if_needed(
-    matrix, start_m, start_n, direction, extend_size=10
-):
-    m_len = len(matrix)
-    n_len = len(matrix[0])
-    res = sup.next_coords(start_m, start_n, direction, (m_len - 1, n_len - 1))
-    if res is None:
-        _extend_matrix(matrix, direction, extend_size)
-        if direction == "right":
-            n_len += extend_size
-        elif direction == "left":
-            start_n += extend_size
-            n_len += extend_size
-        elif direction == "up":
-            start_m += extend_size
-            m_len += extend_size
-        elif direction == "down":
-            m_len += extend_size
-        start_m, start_n = sup.next_coords(
-            start_m, start_n, direction, (m_len - 1, n_len - 1)
-        )
-    else:
-        start_m, start_n = res
-
-    return start_m, start_n
-
-
-def _extend_matrix(matrix, direction, size):
-    if direction == "right":
-        for row in matrix:
-            row.extend(["." for _ in range(size)])
-    elif direction == "left":
-        for row in matrix:
-            row[:0] = ["." for _ in range(size)]
-    elif direction == "up":
-        matrix[:0] = [["." for _ in range(len(matrix[0]))] for _ in range(size)]
-    elif direction == "down":
-        matrix.extend([["." for _ in range(len(matrix[0]))] for _ in range(size)])
+    # https://uk.wikipedia.org/wiki/Теорема_Піка
+    return area + bounds // 2 + 1
 
 
 INPUT_S = """\
@@ -156,7 +93,7 @@ if __name__ == "__main__":
     print("Answer is:     ", compute(input_data))
 
     if "-b" in sys.argv:
-        number_of_runs = 1000
+        number_of_runs = 100
         bench_time = timeit.timeit(
             "compute(data)",
             setup="from __main__ import compute",
