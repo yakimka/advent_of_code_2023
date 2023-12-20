@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import sys
 import timeit
 from collections import deque
@@ -31,65 +32,51 @@ class Command:
     pulse: Pulse
 
 
-class FlipFlop:
-    def __init__(self, name: str) -> None:
+class Module:
+    def __init__(self, name: str):
         self.name = name
+        self.inputs: list[str] = []
+        self.receivers: list[str] = []
+
+    def process(self, pulse: Pulse, sender: str) -> list[Command]:
+        raise NotImplementedError
+
+    def _create_commands(self, pulse: Pulse) -> list[Command]:
+        return [
+            Command(from_=self.name, to=receiver, pulse=pulse)
+            for receiver in self.receivers
+        ]
+
+
+class FlipFlop(Module):
+    def __init__(self, name: str) -> None:
+        super().__init__(name)
         self._is_on = False
-        self.receivers = []
 
     def process(self, pulse: Pulse, sender: str) -> list[Command]:
         if pulse == Pulse.HIGH:
             return []
         self._is_on = not self._is_on
-        pulse = Pulse.HIGH if self._is_on else Pulse.LOW
-        return [
-            Command(from_=self.name, to=receiver.name, pulse=pulse)
-            for receiver in self.receivers
-        ]
+        return self._create_commands(Pulse.HIGH if self._is_on else Pulse.LOW)
 
 
-class Conjunction:
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self.receivers = []
-        self.watch: set[FlipFlop] = set()
-        self._mem_hi = set()
-
+class Conjunction(Module):
     @cached_property
-    def _mem_lo(self):
-        return {module.name for module in self.watch}
+    def _memory(self):
+        return [False for _ in self.inputs]
 
     def process(self, pulse: Pulse, sender: str) -> list[Command]:
-        if sender in self._mem_lo and pulse == Pulse.HIGH:
-            self._mem_lo.remove(sender)
-            self._mem_hi.add(sender)
-        elif sender in self._mem_hi and pulse == Pulse.LOW:
-            self._mem_hi.remove(sender)
-            self._mem_lo.add(sender)
-        pulse = Pulse.HIGH if self._mem_lo else Pulse.LOW
-        return [
-            Command(from_=self.name, to=receiver.name, pulse=pulse)
-            for receiver in self.receivers
-        ]
+        index = self.inputs.index(sender)
+        self._memory[index] = pulse == Pulse.HIGH
+        return self._create_commands(Pulse.LOW if all(self._memory) else Pulse.HIGH)
 
 
-class Broadcaster:
-    def __init__(self) -> None:
-        self.name = "broadcaster"
-        self.receivers = []
-
+class Broadcaster(Module):
     def process(self, pulse: Pulse, sender: str) -> list[Command]:
-        return [
-            Command(from_=self.name, to=receiver.name, pulse=pulse)
-            for receiver in self.receivers
-        ]
+        return self._create_commands(pulse)
 
 
-class Debug:
-    def __init__(self, name: str) -> None:
-        self.name = name
-        self.receivers = []
-
+class Debug(Module):
     def process(self, pulse: Pulse, sender: str) -> list[Command]:
         return []
 
@@ -97,62 +84,62 @@ class Debug:
 class Button:
     def __init__(self, broadcaster: Broadcaster) -> None:
         self.name = "button"
+        self._broadcaster = broadcaster
 
     def press(self) -> Command:
-        return Command(from_=self.name, to="broadcaster", pulse=Pulse.LOW)
+        return Command(from_=self.name, to=self._broadcaster.name, pulse=Pulse.LOW)
 
 
 def compute(s: str) -> int:
     modules = _parse_module(s)
     button = Button(modules["broadcaster"])
-    print()
-    for i in range(4):
+    counts = {
+        Pulse.LOW: 0,
+        Pulse.HIGH: 0,
+    }
+    for _ in range(1000):
         button.press()
         queue = deque([button.press()])
         while queue:
             command = queue.popleft()
+            counts[command.pulse] += 1
             log(command)
             module = modules[command.to]
             queue.extend(module.process(command.pulse, command.from_))
 
-    return 0
+    return math.prod(counts.values())
 
 
 def _parse_module(s: str):
     modules = {}
-    receivers_raw = {}
+    module_name_to_receivers_map = {}
     receivers_to_senders_map = {}
     for line in s.splitlines():
         name, receivers = line.split(" -> ")
         receivers = receivers.split(", ")
         if name == "broadcaster":
-            modules[name] = Broadcaster()
-            receivers_raw[name] = receivers
+            modules[name] = Broadcaster(name)
+            module_name_to_receivers_map[name] = receivers
         else:
             type_, name = name[0], name[1:]
             if type_ == "%":
                 modules[name] = FlipFlop(name)
-                receivers_raw[name] = receivers
+                module_name_to_receivers_map[name] = receivers
             elif type_ == "&":
                 modules[name] = Conjunction(name)
-                receivers_raw[name] = receivers
+                module_name_to_receivers_map[name] = receivers
         for receiver in receivers:
             receivers_to_senders_map.setdefault(receiver, []).append(name)
 
-    for module_name, receiver_names in receivers_raw.items():
-        receivers = []
+    for module_name, receiver_names in module_name_to_receivers_map.items():
+        modules[module_name].receivers = receiver_names
+        modules[module_name].inputs = list(
+            set(receivers_to_senders_map.get(module_name, []))
+        )
         for receiver_name in receiver_names:
-            if receiver_name in modules:
-                receivers.append(modules[receiver_name])
-            else:
+            if receiver_name not in modules:
                 module = Debug(receiver_name)
                 modules[receiver_name] = module
-                receivers.append(module)
-        modules[module_name].receivers = receivers
-        if isinstance(modules[module_name], Conjunction):
-            modules[module_name].watch = {
-                modules[name] for name in receivers_to_senders_map[module_name]
-            }
 
     return modules
 
@@ -178,7 +165,7 @@ EXPECTED2 = 11687500
 @pytest.mark.parametrize(
     "input_s,expected",
     [
-        # (INPUT_S1, EXPECTED1),
+        (INPUT_S1, EXPECTED1),
         (INPUT_S2, EXPECTED2),
     ],
 )
@@ -186,11 +173,10 @@ def test_debug(input_s: str, expected: int) -> None:
     assert compute(input_s) == expected
 
 
-@pytest.mark.skip("Set answer for refactoring")
 def test_input() -> None:
     result = compute(read_input())
 
-    assert result == 0
+    assert result == 788848550
 
 
 def read_input() -> str:
