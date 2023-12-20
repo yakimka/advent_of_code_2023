@@ -32,7 +32,7 @@ def graph(matrix):
         partial(sup.a_star, target=(2, 2), heuristic=lambda a, b: 0),
     ],
 )
-def test_pathfinding_functions(graph, function) -> None:
+def test_pathfinding_functions_with_weights(graph, function) -> None:
     source = (0, 0)
 
     result_dist, result_prev = function(graph, source)
@@ -58,4 +58,28 @@ def test_pathfinding_functions(graph, function) -> None:
         (2, 0): (1, 0),
         (2, 1): (1, 1),
         (2, 2): (1, 2),
+    }
+
+
+@pytest.mark.parametrize(
+    "function",
+    [
+        sup.bfs,
+    ],
+)
+def test_pathfinding_functions_wo_weights(graph, function) -> None:
+    source = (0, 0)
+
+    result_prev = function(graph, source)
+
+    assert result_prev == {
+        (0, 0): None,
+        (0, 1): (0, 0),
+        (0, 2): (0, 1),
+        (1, 0): (0, 0),
+        (1, 1): (1, 0),
+        (1, 2): (1, 1),
+        (2, 0): (1, 0),
+        (2, 1): (2, 0),
+        (2, 2): (2, 1),
     }

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import operator
 import re
 import sys
 import timeit
+from dataclasses import dataclass
+from math import prod
 from pathlib import Path
-from typing import Callable
 
 import pytest
 
@@ -14,75 +14,80 @@ import support as sup
 INPUT_TXT = Path(__file__).parent / "input.txt"
 
 
-def workflow(rules: list[Callable], fallback: str) -> Callable:
-    def workflow_(part: dict) -> str:
-        for rule in rules:
-            if result := rule(part):
-                return result
-        return fallback
-
-    return workflow_
+@dataclass
+class Rule:
+    cat_id: str
+    sign: str
+    comp_value: int
+    return_value: str
 
 
-def rule(
-    cat_id: str, comp_value: int, comparer: Callable, return_value: str
-) -> Callable:
-    def rule_(part: dict) -> str | None:
-        return return_value if comparer(part[cat_id], comp_value) else None
-
-    return rule_
+@dataclass
+class Workflow:
+    name: str
+    rules: list[Rule]
+    fallback: str
 
 
-SIGNS = {
-    "<": operator.lt,
-    ">": operator.gt,
-}
-
-SIGN_SPLIT = re.compile(f"([:{''.join(SIGNS.keys())}])")
-PARTS_SPLIT = re.compile(r"[^\d+]")
+SIGNS = ["<", ">"]
+SIGN_SPLIT = re.compile(f"([:{''.join(SIGNS)}])")
 
 
-def parse_workflow(raw: str) -> tuple[str, Callable]:
+def parse_workflow(raw: str) -> Workflow:
     name, raw = raw.rstrip("}").split("{")
     *rules_raw, fallback = raw.split(",")
     rules = []
     for rule_raw in rules_raw:
         cat_id, sign, value, _, return_value = re.split(SIGN_SPLIT, rule_raw)
-        rules.append(rule(cat_id, int(value), SIGNS[sign], return_value))
-    return name, workflow(rules, fallback)
+        rules.append(Rule(cat_id, sign, int(value), return_value))
+    return Workflow(name, rules, fallback)
 
 
-def parse_part(raw: str) -> dict:
-    parts = (item for item in re.split(PARTS_SPLIT, raw) if item)
-    return {k: int(v) for k, v in zip("xmas", parts)}
+MIN_RATING = 1
+MAX_RATING = 4000
 
 
 def compute(s: str) -> int:
-    in_workflows = True
     workflows = {}
-    parts = []
     for line in s.splitlines():
         if not line:
-            in_workflows = False
-            continue
-        if in_workflows:
-            name, workflow_ = parse_workflow(line)
-            workflows[name] = workflow_
+            break
+        workflow = parse_workflow(line)
+        workflows[workflow.name] = workflow
+
+    ranges = dict(zip("xmas", [(MIN_RATING, MAX_RATING)] * 4))
+    accepted = compute_accepted("in", ranges, workflows)
+
+    return sum(prod(end - start + 1 for start, end in r.values()) for r in accepted)
+
+
+def compute_accepted(name, ranges, workflows):
+    if name == "A":
+        return [ranges]
+    if name == "R":
+        return []
+
+    accepted = []
+    workflow = workflows[name]
+    for rule in workflow.rules:
+        start, end = ranges[rule.cat_id]
+        if rule.sign == "<":
+            accepted += compute_accepted(
+                rule.return_value,
+                ranges | {rule.cat_id: (start, rule.comp_value - 1)},
+                workflows,
+            )
+            ranges.update({rule.cat_id: (rule.comp_value, end)})
         else:
-            parts.append(parse_part(line))
+            accepted += compute_accepted(
+                rule.return_value,
+                ranges | {rule.cat_id: (rule.comp_value + 1, end)},
+                workflows,
+            )
+            ranges.update({rule.cat_id: (start, rule.comp_value)})
 
-    answer = 0
-    for part in parts:
-        result = workflows["in"](part)
-        while True:
-            if result == "R":
-                break
-            elif result == "A":
-                answer += sum(part.values())
-                break
-            result = workflows[result](part)
-
-    return answer
+    accepted.extend(compute_accepted(workflow.fallback, ranges, workflows))
+    return accepted
 
 
 INPUT_S = """\
@@ -104,7 +109,7 @@ hdj{m>838:A,pv}
 {x=2461,m=1339,a=466,s=291}
 {x=2127,m=1623,a=2188,s=1013}
 """
-EXPECTED = 19114
+EXPECTED = 167409079868000
 
 
 @pytest.mark.parametrize(
@@ -120,7 +125,7 @@ def test_debug(input_s: str, expected: int) -> None:
 def test_input() -> None:
     result = compute(read_input())
 
-    assert result == 476889
+    assert result == 132380153677887
 
 
 def read_input() -> str:
