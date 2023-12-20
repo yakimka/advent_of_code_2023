@@ -10,6 +10,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import deque
 from functools import partial
 from typing import Any, Callable, Generator, Hashable, Iterable, TextIO, TypeVar
 
@@ -307,6 +308,19 @@ def cartesian_shortest_path(coords1: Coords, coords2: Coords) -> int:
     return abs(coords1[0] - coords2[0]) + abs(coords1[1] - coords2[1])
 
 
+def cartesian_next_coords(x: int, y: int, direction: str, size: int = 1) -> Coords:
+    if direction == "up":
+        return x - size, y
+    elif direction == "down":
+        return x + size, y
+    elif direction == "left":
+        return x, y - size
+    elif direction == "right":
+        return x, y + size
+    else:
+        raise ValueError(f"Unknown direction {direction}")
+
+
 def next_coords(
     m: int, n: int, direction: str, max_bounds: tuple[int, int] = inf_coords
 ) -> Coords | None:
@@ -353,9 +367,22 @@ def max_bounds_closure(func: TC, matrix: list[list[Any]]) -> TC:
 HT = TypeVar("HT", bound=Hashable)
 
 
+def bfs(graph: dict[HT, dict[HT, int]], source: HT) -> dict[HT, HT]:
+    queue = deque([source])
+    prev = {source: None}
+
+    while queue:
+        u = queue.popleft()
+        for vertex, val in graph[u].items():
+            if vertex not in prev:
+                queue.append(vertex)
+                prev[vertex] = u
+    return prev
+
+
 def dijkstra(
     graph: dict[HT, dict[HT, int]], source: HT
-) -> tuple[dict[HT, int], dict[HT, str]]:
+) -> tuple[dict[HT, int], dict[HT, HT]]:
     dist = {source: 0}
     prev = {source: None}
     pq = [(0, source)]
@@ -374,7 +401,7 @@ def a_star(
     source: HT,
     target: HT,
     heuristic: Callable[[HT, HT], int],
-) -> tuple[dict[HT, int], dict[HT, str]]:
+) -> tuple[dict[HT, int], dict[HT, HT]]:
     """
     A* algorithm implementation.
 
