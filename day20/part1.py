@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import timeit
 from collections import deque
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
@@ -19,54 +20,32 @@ class Pulse(Enum):
     HIGH = "high"
 
 
-def log_send(func):
-    def wrapper(*args, **kwargs) -> Pulse:
-        self = args[0]
-        # print("sender:", self.name)
-        pulse = func(*args, **kwargs)
-        if pulse is None:
-            return None
-        for receiver in self.receivers:
-            print(f"{self.name} -{pulse.value}-> {receiver.name}")
-        return pulse
-
-    return wrapper
+def log(command: Command) -> None:
+    print(f"{command.from_} -{command.pulse.value}-> {command.to}")
 
 
-def log_receive(func):
-    def wrapper(*args, **kwargs) -> Pulse:
-        self, pulse, sender = args
-        result = func(*args, **kwargs)
-        # print(f"{sender.name} -{pulse.value}-> {self.name}")
-        return result
+@dataclass(frozen=True)
+class Command:
+    from_: str
+    to: str
+    pulse: Pulse
 
-    return wrapper
 
 class FlipFlop:
     def __init__(self, name: str) -> None:
         self.name = name
-        self.is_on = False
+        self._is_on = False
         self.receivers = []
-        self.noop = False
 
-    @log_receive
-    def receive(self, pulse: Pulse, sender) -> None:
+    def process(self, pulse: Pulse, sender: str) -> list[Command]:
         if pulse == Pulse.HIGH:
-            self.noop = True
-            # print(self.name, "noop")
-            return
-        self.noop = False
-        self.is_on = not self.is_on
-
-    @log_send
-    def send(self) -> Pulse:
-        if self.noop:
-            self.noop = False
-            return None
-        pulse = Pulse.HIGH if self.is_on else Pulse.LOW
-        for receiver in self.receivers:
-            receiver.receive(pulse, self)
-        return pulse
+            return []
+        self._is_on = not self._is_on
+        pulse = Pulse.HIGH if self._is_on else Pulse.LOW
+        return [
+            Command(from_=self.name, to=receiver.name, pulse=pulse)
+            for receiver in self.receivers
+        ]
 
 
 class Conjunction:
@@ -80,50 +59,30 @@ class Conjunction:
     def _mem_lo(self):
         return {module.name for module in self.watch}
 
-    @log_receive
-    def receive(self, pulse: Pulse, sender) -> None:
-        if sender.name in self._mem_lo and pulse == Pulse.HIGH:
-            self._mem_lo.remove(sender.name)
-            self._mem_hi.add(sender.name)
-        elif sender.name in self._mem_hi and pulse == Pulse.LOW:
-            self._mem_hi.remove(sender.name)
-            self._mem_lo.add(sender.name)
-
-    @log_send
-    def send(self) -> Pulse:
-        # pulse = (
-        #     Pulse.LOW
-        #     if all(pulse == Pulse.HIGH for pulse in ({f: Pulse.LOW for f in self.watch} | self._memory).values())
-        #     else Pulse.HIGH
-        # )
-        # pulse = (
-        #     Pulse.LOW
-        #     if all(pulse == Pulse.HIGH for pulse in self._memory[-len(self.watch):])
-        #     else Pulse.HIGH
-        # )
+    def process(self, pulse: Pulse, sender: str) -> list[Command]:
+        if sender in self._mem_lo and pulse == Pulse.HIGH:
+            self._mem_lo.remove(sender)
+            self._mem_hi.add(sender)
+        elif sender in self._mem_hi and pulse == Pulse.LOW:
+            self._mem_hi.remove(sender)
+            self._mem_lo.add(sender)
         pulse = Pulse.HIGH if self._mem_lo else Pulse.LOW
-        for receiver in self.receivers:
-            receiver.receive(pulse, self)
-        return pulse
+        return [
+            Command(from_=self.name, to=receiver.name, pulse=pulse)
+            for receiver in self.receivers
+        ]
 
 
 class Broadcaster:
     def __init__(self) -> None:
         self.name = "broadcaster"
-        self._pulse: Pulse | None = None
         self.receivers = []
 
-    @log_receive
-    def receive(self, pulse: Pulse, sender) -> None:
-        self._pulse = pulse
-
-    @log_send
-    def send(self) -> Pulse:
-        if self._pulse is None:
-            raise ValueError("No pulses received")
-        for receiver in self.receivers:
-            receiver.receive(self._pulse, self)
-        return self._pulse
+    def process(self, pulse: Pulse, sender: str) -> list[Command]:
+        return [
+            Command(from_=self.name, to=receiver.name, pulse=pulse)
+            for receiver in self.receivers
+        ]
 
 
 class Debug:
@@ -131,42 +90,30 @@ class Debug:
         self.name = name
         self.receivers = []
 
-    @log_receive
-    def receive(self, pulse: Pulse, sender) -> None:
-        pass
-
-    @log_send
-    def send(self) -> Pulse:
-        return Pulse.LOW
+    def process(self, pulse: Pulse, sender: str) -> list[Command]:
+        return []
 
 
 class Button:
     def __init__(self, broadcaster: Broadcaster) -> None:
         self.name = "button"
-        self._pulse = Pulse.LOW
-        self.receivers = [broadcaster]
 
-    @log_send
-    def press(self) -> Pulse:
-        for receiver in self.receivers:
-            receiver.receive(self._pulse, self)
-        return self._pulse
+    def press(self) -> Command:
+        return Command(from_=self.name, to="broadcaster", pulse=Pulse.LOW)
 
 
 def compute(s: str) -> int:
-    modules, exit_module = _parse_module(s)
+    modules = _parse_module(s)
     button = Button(modules["broadcaster"])
     print()
-    for i in range(1):
+    for i in range(4):
         button.press()
-        queue = deque([*button.receivers])
+        queue = deque([button.press()])
         while queue:
-            module = queue.popleft()
-            pulse = module.send()
-            if pulse is None:
-                continue
-            for receiver in module.receivers:
-                queue.append(receiver)
+            command = queue.popleft()
+            log(command)
+            module = modules[command.to]
+            queue.extend(module.process(command.pulse, command.from_))
 
     return 0
 
@@ -175,7 +122,6 @@ def _parse_module(s: str):
     modules = {}
     receivers_raw = {}
     receivers_to_senders_map = {}
-    exit_module = None
     for line in s.splitlines():
         name, receivers = line.split(" -> ")
         receivers = receivers.split(", ")
@@ -192,7 +138,6 @@ def _parse_module(s: str):
                 receivers_raw[name] = receivers
         for receiver in receivers:
             receivers_to_senders_map.setdefault(receiver, []).append(name)
-        exit_module = modules[name]
 
     for module_name, receiver_names in receivers_raw.items():
         receivers = []
@@ -200,14 +145,17 @@ def _parse_module(s: str):
             if receiver_name in modules:
                 receivers.append(modules[receiver_name])
             else:
-                receivers.append(Debug(receiver_name))
+                module = Debug(receiver_name)
+                modules[receiver_name] = module
+                receivers.append(module)
         modules[module_name].receivers = receivers
         if isinstance(modules[module_name], Conjunction):
             modules[module_name].watch = {
                 modules[name] for name in receivers_to_senders_map[module_name]
             }
 
-    return modules, exit_module
+    return modules
+
 
 INPUT_S1 = """\
 broadcaster -> a, b, c
@@ -230,8 +178,8 @@ EXPECTED2 = 11687500
 @pytest.mark.parametrize(
     "input_s,expected",
     [
-        (INPUT_S1, EXPECTED1),
-        # (INPUT_S2, EXPECTED2),
+        # (INPUT_S1, EXPECTED1),
+        (INPUT_S2, EXPECTED2),
     ],
 )
 def test_debug(input_s: str, expected: int) -> None:
@@ -265,56 +213,3 @@ if __name__ == "__main__":
         print(f"{number_of_runs} runs took: {bench_time}s")
         one_run = sup.humanized_seconds(bench_time / number_of_runs)
         print(f"Average time:   {one_run}")
-
-
-# button -low-> broadcaster
-# broadcaster -low-> a
-# broadcaster -low-> b
-# broadcaster -low-> c
-# a -high-> b
-# b -high-> c
-# c -high-> inv
-# inv -low-> a
-# a -low-> b
-# b -low-> c
-# c -low-> inv
-# inv -high-> a
-#
-#
-#
-
-# button -low-> broadcaster
-# broadcaster -low-> a
-# a -high-> inv
-# a -high-> con
-# inv -low-> b
-# con -high-> output
-# b -high-> con
-# con -low-> output
-#
-# button -low-> broadcaster
-# broadcaster -low-> a
-# a -low-> inv
-# a -low-> con
-# inv -high-> b
-# con -high-> output
-#
-# button -low-> broadcaster
-# broadcaster -low-> a
-# a -high-> inv
-# a -high-> con
-# inv -low-> b
-# con -low-> output
-# b -low-> con
-# con -high-> output
-#
-# button -low-> broadcaster
-# broadcaster -low-> a
-# a -low-> inv
-# a -low-> con
-# inv -high-> b
-# con -high-> output
-#
-#
-#######
-#
