@@ -6,9 +6,9 @@ import timeit
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
+from itertools import count
 from pathlib import Path
 
-import pytest
 from distlib.util import cached_property
 
 import support as sup
@@ -96,21 +96,22 @@ class Button:
 def compute(s: str) -> int:
     modules = _parse_module(s)
     button = Button(modules["broadcaster"])
-    counts = {
-        Pulse.LOW: 0,
-        Pulse.HIGH: 0,
-    }
-    for _ in range(1000):
+    conj = modules["rx"].inputs[0]
+    flops = {in_: 0 for in_ in modules[conj].inputs}
+    for i in count(1):
         button.press()
         queue = deque([button.press()])
         while queue:
-            command = queue.popleft()
-            counts[command.pulse] += 1
-            # log(command)
-            module = modules[command.to]
-            queue.extend(module.process(command.pulse, command.from_))
+            cmd = queue.popleft()
+            if cmd.pulse is Pulse.HIGH and cmd.from_ in flops and not flops[cmd.from_]:
+                flops[cmd.from_] = i
+                if all(flops.values()):
+                    return math.lcm(*flops.values())
+            # log(cmd)
+            module = modules[cmd.to]
+            queue.extend(module.process(cmd.pulse, cmd.from_))
 
-    return math.prod(counts.values())
+    raise RuntimeError("Unreachable")
 
 
 def _parse_module(s: str):
@@ -135,51 +136,25 @@ def _parse_module(s: str):
             receivers_to_senders_map.setdefault(receiver, []).append(name)
 
     for module_name, receiver_names in module_name_to_receivers_map.items():
-        modules[module_name].receivers = receiver_names
-        modules[module_name].inputs = list(
-            set(receivers_to_senders_map.get(module_name, []))
-        )
         for receiver_name in receiver_names:
             if receiver_name not in modules:
                 module = Debug(receiver_name)
                 modules[receiver_name] = module
+                modules[receiver_name].inputs = list(
+                    set(receivers_to_senders_map.get(receiver_name, []))
+                )
+        modules[module_name].receivers = receiver_names
+        modules[module_name].inputs = list(
+            set(receivers_to_senders_map.get(module_name, []))
+        )
 
     return modules
-
-
-INPUT_S1 = """\
-broadcaster -> a, b, c
-%a -> b
-%b -> c
-%c -> inv
-&inv -> a
-"""
-EXPECTED1 = 32000000
-INPUT_S2 = """\
-broadcaster -> a
-%a -> inv, con
-&inv -> b
-%b -> con
-&con -> output
-"""
-EXPECTED2 = 11687500
-
-
-@pytest.mark.parametrize(
-    "input_s,expected",
-    [
-        (INPUT_S1, EXPECTED1),
-        (INPUT_S2, EXPECTED2),
-    ],
-)
-def test_debug(input_s: str, expected: int) -> None:
-    assert compute(input_s) == expected
 
 
 def test_input() -> None:
     result = compute(read_input())
 
-    assert result == 788848550
+    assert result == 228300182686739
 
 
 def read_input() -> str:
@@ -192,7 +167,7 @@ if __name__ == "__main__":
     print("Answer is:     ", compute(input_data))
 
     if "-b" in sys.argv:
-        number_of_runs = 200
+        number_of_runs = 20
         bench_time = timeit.timeit(
             "compute(data)",
             setup="from __main__ import compute",
