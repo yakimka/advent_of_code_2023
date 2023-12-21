@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import timeit
 from pathlib import Path
+from typing import Callable, Generator
 
 import pytest
 
@@ -11,19 +12,67 @@ import support as sup
 INPUT_TXT = Path(__file__).parent / "input.txt"
 
 
-def compute(s: str) -> int:
-    for num in sup.iter_lines_as_numbers(s):
-        pass
+def compute(s: str, steps_num: int = 64) -> int:
+    matrix, *_ = sup.make_matrix_from_input(s)
+    start = None
+    for m, row in enumerate(matrix):
+        for n, cell in enumerate(row):
+            if cell == "S":
+                start = (m, n)
+                break
+        if start:
+            break
 
-    for line in s.splitlines():
-        pass
+    neighbors_cross = sup.max_bounds_closure(sup.neighbors_cross, matrix)
+    graph = make_graph_for_matrix(matrix, ["#"], neighbors_cross)
 
-    return 0
+    nodes = {start}
+    for _ in range(steps_num):
+        new_nodes = set()
+        for node in nodes:
+            for neighbor in graph[node]:
+                new_nodes.add(neighbor)
+        nodes = new_nodes
+
+    return len(nodes)
+
+
+def make_graph_for_matrix(
+    matrix,
+    obstacles: list[str],
+    neighbors: Callable[[int, int], Generator[tuple[int, int]]],
+    weight_calculator: Callable[[tuple[int, int]], int] | None = None,
+) -> dict:
+    graph = {}
+    for m, row in enumerate(matrix):
+        for n, cell in enumerate(row):
+            graph[(m, n)] = {}
+            if cell in obstacles:
+                continue
+            for neighbor in neighbors(m, n):
+                n_m, n_n = neighbor
+                if matrix[n_m][n_n] in obstacles:
+                    continue
+                graph[(m, n)][neighbor] = (
+                    weight_calculator((n_m, n_n)) if weight_calculator else 0
+                )
+    return graph
 
 
 INPUT_S = """\
+...........
+.....###.#.
+.###.##..#.
+..#.#...#..
+....#.#....
+.##..S####.
+.##..#...#.
+.......##..
+.##.#.####.
+.##..##.##.
+...........
 """
-EXPECTED = 21000
+EXPECTED = 16
 
 
 @pytest.mark.parametrize(
@@ -33,14 +82,13 @@ EXPECTED = 21000
     ],
 )
 def test_debug(input_s: str, expected: int) -> None:
-    assert compute(input_s) == expected
+    assert compute(input_s, steps_num=6) == expected
 
 
-@pytest.mark.skip("Set answer for refactoring")
 def test_input() -> None:
     result = compute(read_input())
 
-    assert result == 0
+    assert result == 3733
 
 
 def read_input() -> str:
@@ -53,7 +101,7 @@ if __name__ == "__main__":
     print("Answer is:     ", compute(input_data))
 
     if "-b" in sys.argv:
-        number_of_runs = 1000
+        number_of_runs = 100
         bench_time = timeit.timeit(
             "compute(data)",
             setup="from __main__ import compute",
