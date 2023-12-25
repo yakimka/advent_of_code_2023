@@ -75,6 +75,7 @@ class Brick:
             end=self.end - Coords(0, 0, blocks),
         )
 
+
 def unfreeze(bricks):
     for i, brick in enumerate(bricks):
         tmp = brick.move_down()
@@ -115,9 +116,7 @@ def compute(s: str) -> int:
                 graph[brick.id][other.id] = 0
                 inverted_graph[other.id][brick.id] = 0
 
-    bricks_to_delete = {
-        brick_id for brick_id, bricks in graph.items() if not bricks
-    }
+    bricks_to_delete = {brick_id for brick_id, bricks in graph.items() if not bricks}
     for brick_id, bricks in inverted_graph.items():
         if len(bricks) > 1:
             for candidate in bricks:
